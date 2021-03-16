@@ -6,8 +6,8 @@ const client = new Redis({
     port: process.env.REDIS_PORT
 })
 
-const GET_ASYNC = promisify(client.get).bind(client);
-const SET_ASYNC = promisify(client.set).bind(client);
+const GET_ASYNC = promisify(client.hset).bind(client);
+const SET_ASYNC = promisify(client.hgetall).bind(client);
 
 module.exports = {
     GET_ASYNC,

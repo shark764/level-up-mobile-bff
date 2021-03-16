@@ -3,23 +3,13 @@ require('./db')
 const express= require('express')
 const app = express();
 const port = process.env.PORT || 5000;
-const {GET_ASYNC,SET_ASYNC} = require('./utils/redis')
 
 
-// testing...
 
+app.use(require('./routes/FacilityCheckIn'));
+app.use(require('./routes/MemberShips'));
+app.use(require('./routes/Goals'))
 
-app.get('/test',async(req,res)=>{
-        const reply = await GET_ASYNC('KEY');
-        if(reply){
-                console.log("Cached Data",reply);
-                res.json({reply})
-        }else{
-
-        const savedResult = await SET_ASYNC('KEY',"hELLO FER",'EX',10)
-        res.json({reply: savedResult});
-        }
-})
 
 
 

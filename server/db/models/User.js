@@ -8,6 +8,11 @@ const userSchema = new mongoose.Schema({
         trim: true,
        
     },
+
+    location:{
+        type: {type: String, default: "Point"},
+        coordinates: [{type: Number}]
+    },
     password: {
         type: String,        
         required: false,
@@ -84,6 +89,6 @@ userSchema.statics.getUserById = async (id) => {
 
 
 
-const User = mongoose.model('User', userSchema)
+const User = mongoose.model('users', userSchema)
 
 module.exports = User

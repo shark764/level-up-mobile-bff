@@ -1,9 +1,15 @@
 const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
 
 const facilitySchema = new mongoose.Schema({
     name:{
             type: String,
             required: true,
+    },
+
+    description:{
+        type: String,
+        required: true,
     },
 
     address:{
@@ -54,4 +60,43 @@ const facilitySchema = new mongoose.Schema({
     ]  
 })
 
-module.exports = mongoose.model("Facilities",facilitySchema);
+
+facilitySchema.statics.freeMembership  = async (id)=>{
+    const memberships = await Facility.aggregate([
+        {
+            "$match": {"_id": ObjectId(id)}
+        },
+        {
+            "$lookup": {
+                "from": "memberships",
+                "pipeline":[
+                    {
+                        "$match": {
+                            "facilityId": ObjectId(id)
+                        }
+                    },
+                    {
+                        "$project":{
+                            "facilityId": 0,
+                            "__v": 0
+                        }
+                    }
+                ],
+                 "as": "memberships",               
+            },
+        },
+        {
+            "$project":{
+                "memberships": 1
+            }
+        }
+    ])
+// console.log("Memberships",memberships)
+let membership = memberships.pop();
+// If our array is empty it means it has no memberships meaning its free
+return  membership.memberships.length === 0 ?  true : false
+}
+
+
+const Facility = mongoose.model('facilities',facilitySchema);
+module.exports = Facility;

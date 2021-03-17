@@ -4,7 +4,12 @@ const GoalCategory = require('../../db/models/Goal_Category')
 const UserFacility = require('../../db/models/User_Facility')
 const UserGoal = require('../../db/models/User_Goal')
 const Goal = require('../../db/models/Goal')
-app.get('/goalscategories',async(req,res)=>{
+const validateAccess = require('../../middlewares/validateAccess');
+const verifyToken = require('../../middlewares/verifyToken');
+const ObjectId = require('mongoose').Types.ObjectId;
+
+
+app.get('/goalscategories',validateAccess,async(req,res)=>{
     try{
        const goalCategories = await GoalCategory.find({}); 
        res.json({success: true, categories: goalCategories});
@@ -13,15 +18,37 @@ app.get('/goalscategories',async(req,res)=>{
     }
 })
 
-app.get('/goals/:id',async(req,res)=>{
-    try{
-        res.json({success: true, msg: "Still developing...."})      
-    }catch(error){
-        res.json({success: false,error})
-    }
+app.get('/goals/:id',[validateAccess,verifyToken],async(req,res)=>{
+    
+        const id = req.params.id;
+        const {userId,facilityId} = req.body;
+        const userFacility = await UserFacility.find({userId,facilityId})
+        console.log("UserFacility",userFacility)
+        const userGoals = await UserGoal.find({userFacilityId: userFacility});
+        console.log("userGoals",userGoals);
+        Goal.aggregate([
+            {
+                "$match":{"goalCategoryId": ObjectId(id)}
+            },
+           {
+               "$redact":{
+                   "$cond":{
+                        "if": {"$in":["$_id", userGoals.map(({goalId})=>ObjectId(goalId))]},
+                        "then": "$$PRUNE",
+                        "else": "$$DESCEND"
+                   }
+               }
+           }
+        ]).exec((err,goals)=>{
+            console.log("Goals",goals);
+            if(err) res.json({success: true, error: err})
+            res.json({success: true, goals})
+        })
+           
+   
 })
 
-app.post('/goalscategories/:id',async(req,res)=>{
+app.post('/goalscategories/:id',[validateAccess,verifyToken],async(req,res)=>{
     try{    
             const {userId,facilityId} = req.body;
             const goal = await Goal.findById(req.params.id);

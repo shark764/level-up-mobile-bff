@@ -7,14 +7,15 @@ const Membership = require('../../db/models/MemberShip')
 const verifyPaymentPayload = require('../../utils/helpers/validatePaymentPayload')
 const {createMembership} = require('./helpers')
 const ObjectId = require('mongoose').Types.ObjectId;
-
+const validateAccess = require('../../middlewares/validateAccess');
+const verifyToken = require('../../middlewares/verifyToken');
 
 
 // parse various different custom JSON types as JSON
 app.use(express.json());
 
 
-app.post('/membership/free/:facilityId/:userId',async(req,res)=>{
+app.post('/membership/free/:facilityId/:userId',[validateAccess,verifyToken],async(req,res)=>{
   
       try{
 
@@ -54,7 +55,7 @@ app.post('/membership/free/:facilityId/:userId',async(req,res)=>{
     
 })
 
-app.post('/membership/:membershipId/:userId',async(req,res)=>{
+app.post('/membership/:membershipId/:userId',[validateAccess,verifyToken],async(req,res)=>{
 
         try{
             const {membershipId,userId} = req.params;
@@ -94,9 +95,9 @@ app.post('/membership/:membershipId/:userId',async(req,res)=>{
 });
 
 
-app.get('/membership/:id',async(req,res)=>{
+app.get('/membership/:membershipId',validateAccess,async(req,res)=>{
     try{
-        const membership = await Membership.findById(req.params.id).populate('facilityId','name');
+        const membership = await Membership.findById(req.params.membershipId).populate('facilityId','name');
         if(membership){
                 res.json({success: true, membership});
         }else{
@@ -107,7 +108,7 @@ app.get('/membership/:id',async(req,res)=>{
     }
 })
 
-app.get('/memberships/:userId',async(req,res)=>{
+app.get('/memberships/:userId',[validateAccess,verifyToken],async(req,res)=>{
   
         const id = req.params.userId;
         UserFacility.aggregate([

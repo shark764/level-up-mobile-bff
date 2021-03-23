@@ -1,27 +1,107 @@
 const express = require('express')
 const ObjectId = require('mongoose').Types.ObjectId
-const User_Posts = require('../../db/models/User_Posts')
-const User_Friends = require('../../db/models/User_Friends')
+const User = require('../../db/models/User')
 const success = require('../../utils/helpers/response').success
 const error = require('../../utils/helpers/response').error
 const validateAccess = require('../../middlewares/validateAccess');
-const verifyToken = require('../../middlewares/verifyToken');
 const router = express.Router()
 
-// Add new post
-// POST /social/new/post
-router.post('/social/new/post', validateAccess, async (req, res) => {
-    const post = new User_Posts({
-        ...req.body,
-        //userId: '605108e0554dee40405ed798'
-        userId: req.user.data._id
-    })
+// Get friend's and group's posts for the user
+// GET /social/feed/
+router.get('/social/feed/', validateAccess, async (req, res) => {
+    try {        
+        const feed = await User.aggregate([
+            { $match: { "_id": ObjectId(req.user.data._id)} },
+            {
+                $lookup:
+                {
+                    from: "user_group_members",
+                    pipeline: [
+                        { $match: { userId: ObjectId(req.user.data._id) } },
+                        {
+                            $lookup:
+                            {
+                                from: "groups",
+                                let: { groupId: "$groupId" },
+                                pipeline: [
+                                    { $match: { $expr: { $eq: ["$_id", "$$groupId"] } } }
+                                ],
+                                as: "detailGroup"
+                            }
+                        },
+                        { $unwind: "$detailGroup" },
+                        {
+                            $project:
+                            {
+                                detailGroup: 1
+                            }
+                        }
+                    ],
+                    as: "groups"
+                }
+            },
+            { $unwind: { path: "$groups", preserveNullAndEmptyArrays: true } },
+            { $unwind: { path: "$groups.detailGroup", preserveNullAndEmptyArrays: true } },
+            {
+                $project:
+                {
+                    _id: 0,
+                    groupId: "$groups.detailGroup._id",
+                    groupName: "$groups.detailGroup.groupName",
+                    description: "$groups.detailGroup.description",
+                    coverPhoto: "$groups.detailGroup.coverPhoto",
+                    status: "$groups.detailGroup.status",
+                    members: { $ifNull: ["$quantity.members", 0] }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'user_posts',
+                    let: { groupId: '$groupId' },
+                    pipeline: [
+                        { $match: {$expr: { $or: [ { $eq: ['$groupsId', "$$groupId"]} , { $in: [ '$userId', [ObjectId('6054d16693d8a4413c22827d')] ]  } ] }  } }
+                    ],
+                    as: 'post'
+                }
+            },
+            {
+                $unwind: { path: '$post' }
+            },
+            {
+                $sort: {
+                    'post.publishDate': -1
+                }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'post.userId',
+                    foreignField: '_id',
+                    as: 'user'
+                }
+            },
+            {
+                $unwind: { path: '$user' }
+            },
+            {
+                $addFields: {
+                    'post.userId': '$user'
+                }
+            },
+            {
+                $project: {
+                    'post.userId.password': 0,
+                    'user': 0
+                }
+            },
+            {
+                $group: { '_id': '$groupName', 'posts': { $push: '$post' } }
+            }
+        ])
 
-    try {
-        await post.save()
         return res
             .status(201)
-            .json(success({ requestId: req.id, data: post }))
+            .json(success({ requestId: req.id, data: feed }))
     } catch (err) {
         return res
             .status(400)

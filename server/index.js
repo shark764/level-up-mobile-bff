@@ -1,18 +1,25 @@
 require("dotenv").config()
 require('./db')
 const express= require('express')
-const app = express();
-const port = process.env.PORT || 5000;
-const addRequestId = require('express-request-id')();
+const app = express()
+const port = process.env.PORT || 5000
+const addRequestId = require('express-request-id')()
+const achievementRouter = require('./routes/Achievements')
+const leagueRouter = require('./routes/League')
+const gameRouter = require('./routes/Games')
+const userAchievementsRouter = require('./routes/UserAchievements')
  
-app.use(addRequestId);
+app.use(addRequestId)
+app.use(express.json())
 
-app.use(require('./routes/FacilityCheckIn'));
-app.use(require('./routes/MemberShips'));
+app.use(achievementRouter)
+app.use(leagueRouter)
+app.use(gameRouter)
+app.use(userAchievementsRouter)
+
+app.use(require('./routes/FacilityCheckIn'))
+app.use(require('./routes/MemberShips'))
 app.use(require('./routes/Goals'))
-
-
-
 
 
 app.listen(port,(err)=>{

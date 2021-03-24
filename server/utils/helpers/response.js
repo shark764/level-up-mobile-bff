@@ -1,5 +1,4 @@
 const success = (args) => {
-    console.log("Args",args)
     return {
         status: 'success',
         requestId: args.requestId,

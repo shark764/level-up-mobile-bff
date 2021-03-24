@@ -11,95 +11,71 @@ const router = express.Router()
 // GET /social/feed/
 router.get('/social/feed/', validateAccess, async (req, res) => {
     const user_friends = await User_Friends.find({ userId: req.user.data._id }).distinct('friendUserId')
-    try {        
+    try {
         const feed = await User.aggregate([
+    
             { $match: { "_id": ObjectId(req.user.data._id)} },
             {
-                $lookup:
-                {
-                    from: "user_group_members",
-                    pipeline: [
-                        { $match: { userId: ObjectId(req.user.data._id) } },
-                        {
-                            $lookup:
-                            {
-                                from: "groups",
-                                let: { groupId: "$groupId" },
-                                pipeline: [
-                                    { $match: { $expr: { $eq: ["$_id", "$$groupId"] } } }
-                                ],
-                                as: "detailGroup"
-                            }
-                        },
-                        { $unwind: "$detailGroup" },
-                        {
-                            $project:
-                            {
-                                detailGroup: 1
-                            }
-                        }
-                    ],
-                    as: "groups"
-                }
-            },
-            { $unwind: { path: "$groups", preserveNullAndEmptyArrays: true } },
-            { $unwind: { path: "$groups.detailGroup", preserveNullAndEmptyArrays: true } },
-            {
-                $project:
-                {
-                    _id: 0,
-                    groupId: "$groups.detailGroup._id",
-                    groupName: "$groups.detailGroup.groupName",
-                    description: "$groups.detailGroup.description",
-                    coverPhoto: "$groups.detailGroup.coverPhoto",
-                    status: "$groups.detailGroup.status",
-                    members: { $ifNull: ["$quantity.members", 0] }
-                }
-            },
-            {
                 $lookup: {
-                    from: 'user_posts',
-                    let: { groupId: '$groupId' },
-                    pipeline: [
-                        { $match: {$expr: { $or: [ { $eq: ['$groupsId', "$$groupId"]} , { $in: [ '$userId', user_friends ]  } ] }  } }
+                    from: 'groups',                
+                    pipeline: 
+                    [
+                        { $match: { 'userMembers.userId': ObjectId(req.user.data._id) } },
                     ],
-                    as: 'post'
+                    as: 'groups'
                 }
             },
-            {
-                $unwind: { path: '$post' }
-            },
-            {
-                $sort: {
-                    'post.publishDate': -1
-                }
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'post.userId',
-                    foreignField: '_id',
-                    as: 'user'
-                }
-            },
-            {
-                $unwind: { path: '$user' }
-            },
-            {
-                $addFields: {
-                    'post.userId': '$user'
-                }
-            },
+            { $unwind: "$groups" },
             {
                 $project: {
-                    'post.userId.password': 0,
-                    'user': 0
+                    'groups':1
                 }
             },
             {
-                $group: { '_id': '$groupName', 'posts': { $push: '$post' } }
-            }
-        ])
+                    $lookup: {
+                        from: 'user_posts',
+                        let: { groupId: '$groups._id' },
+                        pipeline: [
+                            { $match: {$expr: { $or: [ { $eq: ['$groupsId', "$$groupId"]} , { $in: [ '$userId', user_friends ]  } ] }  } }
+                        ],
+                        as: 'post'
+                    }
+             },
+             {
+                    $unwind: { path: '$post' }
+             },
+             {
+                    $sort: {
+                        'post.publishDate': -1
+                    }
+             },
+             {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'post.userId',
+                        foreignField: '_id',
+                        as: 'user'
+                    }
+             },
+             {
+                    $unwind: { path: '$user' }
+             },
+             {
+                    $addFields: {
+                        'post.userId': '$user'
+                    }
+             },
+             {
+                    $project: {
+                        'post.userId.password': 0,
+                        'user': 0
+                    }
+              },
+              {
+                    $group: { '_id': '$groupName', 'posts': { $push: '$post' } }
+              }
+        
+    ])
 
         return res
             .status(201)

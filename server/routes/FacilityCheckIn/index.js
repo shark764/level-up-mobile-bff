@@ -47,8 +47,8 @@ app.get('/facilities',[validateAccess,verifyRequest],async(req,res)=>{
                             }},
                             
 
-                        ]).exec((error,nearFacilities)=>{
-                            error ? res.status(400).json(error({requestId: req.id, code:400 , message: error })) : res.json(success({requestId: req.id,data:{facilities,nearFacilities}}));
+                        ]).exec((err,nearFacilities)=>{
+                            err ? res.status(400).json(error({requestId: req.id, code:400 , message: err })) : res.json(success({requestId: req.id,data:{facilities,nearFacilities}}));
                         })
 
                         
@@ -63,8 +63,8 @@ app.get('/facilities',[validateAccess,verifyRequest],async(req,res)=>{
             res.json(success({requestId: req.id, data:{facilities}}));
         }
         
-    }catch(error){
-        res.status(500).json(error({requestId: req.id,code: 500 ,message: error}))
+    }catch(err){
+        res.status(500).json(error({requestId: req.id,code: 500 ,message: err}))
     }
 })
 
@@ -98,9 +98,9 @@ app.get('/facility/:facilityId',validateAccess,async(req,res)=>{
             },
 
             
-        ]).exec((error,facility)=>{
-           if(error){
-                res.status(500).json(error({requestId: req.id,code:500,message:error}))
+        ]).exec((err,facility)=>{
+           if(err){
+                res.status(500).json(error({requestId: req.id,code:500,message:err}))
            }else if(facility.length === 0){
                 res.status(404).json(error({requestId: req.id, code: 404 ,message: "No facility found with that ID."}))
            }else{
@@ -109,8 +109,8 @@ app.get('/facility/:facilityId',validateAccess,async(req,res)=>{
 
            
         })
-    }catch(error){
-        res.status(500).json(error({requestId: req.id, code:500 ,message: error }))
+    }catch(err){
+        res.status(500).json(error({requestId: req.id, code:500 ,message: err }))
     }
 })
 

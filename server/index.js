@@ -10,9 +10,6 @@ const leagueRouter = require('./routes/League')
 const gameRouter = require('./routes/Games')
 const userAchievementsRouter = require('./routes/UserAchievements')
  
-app.use(addRequestId)
-app.use(express.json())
-
 app.use(achievementRouter)
 app.use(leagueRouter)
 app.use(gameRouter)
@@ -22,6 +19,7 @@ app.use(require('./routes/FacilityCheckIn'))
 app.use(require('./routes/MemberShips'))
 app.use(require('./routes/Goals'))
 app.use(require('./routes/UserFacilityProfile'))
+app.use(require('./routes/Social/user_posts'))
 
 app.listen(port,(err)=>{
         if(err)  throw new Error(err);

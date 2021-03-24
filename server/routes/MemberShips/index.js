@@ -9,6 +9,7 @@ const {createMembership} = require('./helpers')
 const ObjectId = require('mongoose').Types.ObjectId;
 const validateAccess = require('../../middlewares/validateAccess');
 const verifyToken = require('../../middlewares/verifyToken');
+const {error,success} = require('../../utils/helpers/response')
 
 
 // parse various different custom JSON types as JSON
@@ -33,24 +34,24 @@ app.post('/membership/free/:facilityId/:userId',[validateAccess,verifyToken],asy
                     UserFacility.isAlreadyMember(userId,facilityId).then(async()=>{
                         const userFacility = new UserFacility({userId, facilityId});
                         await userFacility.save();
-                        res.json({success: true, user_facility: userFacility});
+                        res.json(success({requestId: req.id, data:{ user_facility: userFacility}}));
                        }).catch(e=>{
-                            res.status(e.statusCode).json({success: false, error: e.error})
+                            res.status(e.statusCode).json(error({requestId: req.id,code: e.statusCode ,message: e.error}))
                        })
                 }else{
                     // Facility it's not free.
-                    res.status(401).json({success: false, error: "Facility it's not free"})
+                    res.status(401).json(error({requestId: req.id, code: 401 ,message: "Facility it's not free"}))
                 }
                 
             }else{
-                res.status(404).json({success: false, error: "User not found with that ID."})
+                res.status(404).json(error({requestId: req.id,code: 404 ,message: "User not found with that ID."}))
             }
         }else{
-            res.status(404).json({success: false, error: "Facility not found."})
+            res.status(404).json(error({requestId: req.id,code:404 ,message: "Facility not found."}))
         }
 
-      }catch(error){
-          res.status(500).json({success: false, error})
+      }catch(err){
+          res.status(500).json(error({requestId: req.id, code:500 , message: err}))
       }
     
 })
@@ -71,22 +72,22 @@ app.post('/membership/:membershipId/:userId',[validateAccess,verifyToken],async(
                             let validPayload = await verifyPaymentPayload(payload,membership.price)
                             if(validPayload){
                                 let newMembership = await createMembership({user,membership,payload});
-                                res.json({success: true, membership: newMembership});
+                                res.json(success({requestId: req.id, data:{membership: newMembership}}));
                             }else{ 
-                                res.status(404).json({success: false, error: "There was a problem with payment, please try again."});
+                                res.status(404).json(error({requestId: req.id,code:404 ,message: "There was a problem with payment, please try again."}));
                             }
             
                     }).catch(e=>{
-                        res.status(e.statusCode).json({success: false, error: e.error})
+                        res.status(e.statusCode).json(error({requestId: req.id,code: e.statusCode ,message: e.error}))
                     })
         
                 }
             
             }else{
-                res.status(404).json({success: false, error: "No membership found with that ID."})
+                res.status(404).json(error({requestId: req.id,code: 404 ,message: "No membership found with that ID."}))
             }
-        }catch(error){
-            res.json({success:false,error});
+        }catch(err){
+            res.status(500).json(error({requestId:req.id,code:500,message:err}));
         }  
         
         
@@ -99,15 +100,16 @@ app.get('/membership/:membershipId',validateAccess,async(req,res)=>{
     try{
         const membership = await Membership.findById(req.params.membershipId).populate('facilityId','name');
         if(membership){
-                res.json({success: true, membership});
+                res.json(success({requestId: req.id, data:{membership}}));
         }else{
-            res.json({success: false, error: "No membership found with that id."})
+            res.status(404).json(error({requestId: req.id,code:404,message: "No membership found with that id."}))
         }
     }catch(error){
-        res.status(500).json({success:false, error})
+        res.status(500).json(error({requestId:req.id,code:500 ,message:error}))
     }
 })
 
+// Missing parsing responses in this Endpoint...
 app.get('/memberships/:userId',[validateAccess,verifyToken],async(req,res)=>{
   
         const id = req.params.userId;

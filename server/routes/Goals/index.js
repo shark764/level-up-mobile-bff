@@ -7,14 +7,14 @@ const Goal = require('../../db/models/Goal')
 const validateAccess = require('../../middlewares/validateAccess');
 const verifyToken = require('../../middlewares/verifyToken');
 const ObjectId = require('mongoose').Types.ObjectId;
-
+const {error,success} = require('../../utils/helpers/response')
 
 app.get('/goalscategories',validateAccess,async(req,res)=>{
     try{
        const goalCategories = await GoalCategory.find({}); 
-       res.json({success: true, categories: goalCategories});
-    }catch(error){
-        res.json({success: true, error})
+       res.json(success({requestId: req.id, data:{categories: goalCategories}}));
+    }catch(err){
+        res.status(500).json(error({requestId: req.id,code: 500, message: err}))
     }
 })
 
@@ -23,9 +23,7 @@ app.get('/goals/:id',[validateAccess,verifyToken],async(req,res)=>{
         const id = req.params.id;
         const {userId,facilityId} = req.body;
         const userFacility = await UserFacility.find({userId,facilityId})
-        console.log("UserFacility",userFacility)
         const userGoals = await UserGoal.find({userFacilityId: userFacility});
-        console.log("userGoals",userGoals);
         Goal.aggregate([
             {
                 "$match":{"goalCategoryId": ObjectId(id)}
@@ -40,9 +38,8 @@ app.get('/goals/:id',[validateAccess,verifyToken],async(req,res)=>{
                }
            }
         ]).exec((err,goals)=>{
-            console.log("Goals",goals);
-            if(err) res.json({success: true, error: err})
-            res.json({success: true, goals})
+            if(err) res.status(500).json(error({requestId: req.id, code: 500, message: err}))
+            res.json(success({requestId: req.id, data:{goals}}))
         })
            
    
@@ -61,25 +58,25 @@ app.post('/goalscategories/:id',[validateAccess,verifyToken],async(req,res)=>{
                        if(userGoal.length === 0){
                         let userGoal = new UserGoal({goalId: goal, userFacilityId});
                         await userGoal.save();
-                        res.json({success: true, msg: "Goal added successfully.", userGoal})
+                        res.json(success({requestId: req.id,data:{ message: "Goal added successfully.", userGoal}}))
                        }else{
-                           res.json({success: false, error: "Goal is already added to this specific user."})
+                           res.status(409).json(error({requestId: req.id,code:409 ,message: "Goal is already added to this specific user."}))
                        }
                         
                         
                     }else{
-                        res.status(404).json({success: false, error: "No relation found user/facility please check payload."})
+                        res.status(404).json(error({requestId: req.id,code: 404 ,message: "No relation found user/facility please check payload."}))
                     }
                 }else{
-                    res.status(400).json({success: false, error: 'Missing params in payload.'})
+                    res.status(400).json(error({requestId: req.id,code:400 ,message: 'Missing params in payload.'}))
                 }
             }else{
-                res.status(404).json({success: false, error: "No Goal found with that ID."})
+                res.status(404).json(error({requestId: req.id, code:404 ,message: "No Goal found with that ID."}))
             }
             
 
-    }catch(error){
-        res.json({success: false, error})
+    }catch(err){
+        res.status(500).json(error({requestId: req.id, code:500, message: err}))
     }
 })
 

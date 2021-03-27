@@ -9,11 +9,16 @@ const achievementRouter = require('./routes/Achievements')
 const leagueRouter = require('./routes/League')
 const gameRouter = require('./routes/Games')
 const userAchievementsRouter = require('./routes/UserAchievements')
+const UserChallengeRouter = require('./routes/UserChallenges')
  
+app.use(addRequestId)
+app.use(express.json())
+
 app.use(achievementRouter)
 app.use(leagueRouter)
 app.use(gameRouter)
 app.use(userAchievementsRouter)
+app.use(UserChallengeRouter)
 
 app.use(require('./routes/FacilityCheckIn'))
 app.use(require('./routes/MemberShips'))

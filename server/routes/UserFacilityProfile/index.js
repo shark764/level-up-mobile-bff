@@ -18,6 +18,8 @@ app.get('/userprogress/:userId',async(req,res)=>{
      }).catch(e=>{
          res.status(500).json({requestId: req.id, code: 500, message:e})
      })
+        
+   
        
     }catch(err){
         res.status(500).json(error({requestId: req.id, code:500, message: err}))

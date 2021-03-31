@@ -139,6 +139,98 @@ userSchema.statics.getRankByFacility= async(userId, facilityId)=>{
  
 }
 
+userSchema.statics.leaderBoard = async()=>{
+    try{
+        return new Promise((resolve,reject)=>{
+            UserMatch.aggregate([
+                {
+                    "$group":{
+                        "_id": "$userFacilityId",
+                        "score":{
+                            "$sum": "$score"
+                        },
+                    }
+                },
+                {
+                    "$lookup":{
+                        "from": "user_facilities",
+                        "let":{"id": '$_id'},
+                        "pipeline":[
+                            {
+                               "$match":{
+                                   "$expr":{
+                                       "$eq":["$_id","$$id"]
+                                   }
+                               } 
+                            },
+                            {
+                                "$project":{
+                                    "userId": 1,
+                                    "facilityId": 1,
+                                }
+                            }
+                        ],
+                        "as": "userFacility"
+                    }
+                },
+                {
+                    "$unwind":{
+                        "path": "$userFacility"
+                    }
+                },
+                {
+                    "$group":{
+                        "_id": "$userFacility.userId",
+                        "score":{
+                            "$sum": "$score",
+                        },
+                    }
+                },
+                {
+                    "$sort":{
+                        "score": -1
+                    }
+                },
+                {
+                    "$group":{
+                        "_id": null,
+                        "docs": {"$push": "$$ROOT"}
+                    }
+                },
+                { 
+                    "$project": { 
+                        "_id": 0,
+                       "R": { 
+                           "$map": {
+                               "input": { "$range": [ 0, { "$size": "$docs" } ] },
+                                "in": {
+                                   "$mergeObjects": [ 
+                                       { "rank": { "$add": [ "$$this", 1 ] } },
+                                       { "$arrayElemAt": [ "$docs", "$$this" ] }
+                                   ]
+                               }
+                           }
+                       }
+                    }
+                },
+                { 
+                    "$unwind": "$R" 
+                },
+                { 
+                    "$replaceRoot": { "newRoot": "$R" } 
+                },
+                
+            ]).exec(async(err,results)=>{
+                if (err) reject(err)
+                // console.log("Results",results);
+                resolve(results);
+            })
+        })
+    }catch(e){
+        throw new Error(e)
+    }
+}
+
 // Get the global rank with score of user.
 userSchema.statics.getGlobalRank = async(userId)=>{
     try{
@@ -228,6 +320,7 @@ userSchema.statics.getGlobalRank = async(userId)=>{
                 
             ]).exec((err,results)=>{
                 if(err) reject(err)
+                if(results.length === 0) resolve({rank: null, _id: userId, score: 0})
                 resolve(results.pop());
             })
         })

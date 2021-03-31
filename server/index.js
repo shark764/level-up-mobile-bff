@@ -25,6 +25,7 @@ app.use(require('./routes/MemberShips'))
 app.use(require('./routes/Goals'))
 app.use(require('./routes/UserFacilityProfile'))
 app.use(require('./routes/Social/user_posts'))
+app.use(require('./routes/LeaderBoard'));
 
 app.listen(port,(err)=>{
         if(err)  throw new Error(err);

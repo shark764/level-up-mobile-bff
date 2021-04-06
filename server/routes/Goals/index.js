@@ -80,7 +80,7 @@ app.post('/goalscategories/:id',[validateAccess,verifyToken],async(req,res)=>{
     }
 })
 
-app.get('/mygoals/:userId',async(req,res)=>{
+app.get('/mygoals/:userId',[validateAccess,verifyToken],async(req,res)=>{
     try{
         const {userId}= req.params;
         const {facilityId} = req.body;

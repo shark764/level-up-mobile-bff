@@ -83,11 +83,11 @@ router.get('/social/event/:id',validateAccess, async (req, res) => {
 
 // /// Get user unattending events
 // /// GET /social/event/unattending
-router.get('/social/unattending/event/', validateAccess, async (req, res) => {
+router.get('/social/unattending/events/', validateAccess, async (req, res) => {
     try {
         const events = await Users_Events_Attendance.find({ userId: req.user.data._id, isAccepted: false })
 
-        if (!events) {
+        if (!events && events.length === 0) {
             return res.status(404).json(error({ requestId: req.id, code: 404 }))
         }
 
@@ -141,9 +141,9 @@ router.delete('/social/attend/event/:id', validateAccess, async (req, res) => {
     }
 })
 
-router.get('/social/upcoming/event', validateAccess, async (req, res) => {
+router.get('/social/upcoming/events', validateAccess, async (req, res) => {
     try {
-        const events = await User.aggregate([
+        await User.aggregate([
             { $match: { "_id": ObjectId(req.user.data._id )}},
             {
                 $lookup: {
@@ -179,18 +179,16 @@ router.get('/social/upcoming/event', validateAccess, async (req, res) => {
                     'events': 1
                 }
             }
-        ])
-        
-        if (!events) {
-            return res.status(404).json(error({ requestId: req.id, code: 404 }))
-        }
-    
-        res
+        ]).exec((err,results)=> {
+            if (err) res.status(500).json(error({reqId: req.id, code:500,mesage: err}))
+            if( results.length === 0 ) return res.status(404).json(error({ requestId: req.id, code: 404 , message: "No results found"}))    
+             res
             .status(200)
             .json(success({
                 requestId: req.id, 
-                data: { events }
+                data: { results }
             }))
+         })
     } catch (err) {
         res.status(400).json(error({ requestId: req.id, code: 400, message: err }))
     }

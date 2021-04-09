@@ -2,6 +2,8 @@ const mongoose = require('mongoose')
 const UserFacility = require('./User_Facility')
 const Facility = require('../models/Facility')
 const UserMatch = require('./User_Match')
+const Group = require('../models/Group')
+const UserFriend = require('../models/User_Friend')
 const ObjectId = mongoose.Types.ObjectId
 
 const userSchema = new mongoose.Schema({
@@ -493,9 +495,556 @@ userSchema.statics.getUserById = async (id) => {
 
 }
 
+userSchema.statics.findUserInGroups = async (inUserId) => {
+
+    const tempUserId = ObjectId(inUserId);
+
+    return new Promise(async (resolve, reject) => {
+        Group.aggregate([
+            { $addFields: { "totalMembers": { $size: "$userMembers" } } },
+            { $unwind: { path: "$userMembers", preserveNullAndEmptyArrays: true } },
+            {
+                $match:
+                {
+                    $expr:
+                    {
+                        $and:
+                            [
+                                { $eq: ["$userMembers.userId", tempUserId] },
+                                { $eq: ["$userMembers.status", "accepted"] }
+                            ]
+                    }
+                }
+            },
+            {
+                $project:
+                {
+                    _id: 0,
+                    groupId: "$_id",
+                    userId: "$userId",
+                    groupName: "$groupName",
+                    description: "$description",
+                    coverPhoto: "$coverPhoto",
+                    privacySettings: "$privacySettings",
+                    status: "$status",
+                    userMembers: "$userMembers",
+                    totalMembers: "$totalMembers",
+                }
+            },
+            {
+                $unionWith:
+                {
+                    coll: "groups",
+                    pipeline: [
+                        { $addFields: { "totalMembers": { $size: "$userMembers" } } },
+                        { $match: { userId: tempUserId } },
+                        {
+                            $project:
+                            {
+                                _id: 0,
+                                groupId: "$_id",
+                                userId: "$userId",
+                                groupName: "$groupName",
+                                description: "$description",
+                                coverPhoto: "$coverPhoto",
+                                privacySettings: "$privacySettings",
+                                status: "$status",
+                                userMembers: "$userMembers",
+                                totalMembers: "$totalMembers",
+                            }
+                        }
+                    ]
+                }
+            }
+        ]).exec((error, result) => {
+            if (error) {
+                reject(error);
+            }
+            if (result.length === 0) {
+                reject(`No data found for User ${inUserId}`);
+            }
+            else {
+                resolve(result);
+            }
+        })
+    })
+}
 
 
+userSchema.statics.findUserNotInGroups = async (inUserId) => {
+
+    const tempUserId = ObjectId(inUserId);
+
+    return new Promise((resolve, reject) => {
+        Group.aggregate([
+
+            {
+                $unwind: { path: "$userMembers", preserveNullAndEmptyArrays: true }
+            },
+            {
+                $match:
+                {
+                    $expr:
+                    {
+                        $or:
+                            [
+                                { $and: [{ $eq: ["$userMembers.userId", tempUserId] }, { $eq: ["$userMembers.status", "accepted"] }] },
+                                { $eq: ["$userId", tempUserId] }
+                            ]
+                    }
+                }
+            },
+            {
+                $group: { "_id": "$_id" }
+            },
+            {
+                $project:
+                {
+                    _id: 0,
+                    "id2": "$_id"
+                }
+            },
+            {
+                $group: { _id: null, docs: { $push: "$id2" } }
+            },
+            {
+                $project:
+                {
+                    _id: 0
+                }
+            },
+            {
+                $lookup:
+                {
+                    from: "groups",
+                    let: { ids: "$docs" },
+                    pipeline: [
+                        { $match: { $expr: { $not: { $in: ["$_id", "$$ids"] } } } },
+                        {
+                            $addFields:
+                            {
+                                "totalMembers": { $size: "$userMembers" }
+                            }
+                        },
+                    ],
+                    as: "groups"
+                }
+            },
+            { $unwind: "$groups" },
+            {
+                $project:
+                {
+                    groupId: "$groups._id",
+                    userId: "$groups.userId",
+                    groupName: "$groups.groupName",
+                    description: "$groups.description",
+                    coverPhoto: "$groups.coverPhoto",
+                    privacySettings: "$groups.privacySettings",
+                    status: "$groups.status",
+                    userMembers: "$groups.userMembers",
+                    totalMembers: "$groups.totalMembers",
+                }
+            }
+        ]).exec((error, result) => {
+            if (error) {
+                reject(error);
+            }
+            if (result.length === 0) {
+                reject(`No data found for User ${inUserId}`);
+            }
+            else {
+                resolve(result);
+            }
+        })
+    })
+}
+
+userSchema.statics.myFriendsGroups = async (inUserId) => {
+
+    const tempUserId = ObjectId(inUserId);
+
+    return new Promise((resolve, reject) => {
+
+        //Get the groups wher the user not in        
+        Group.aggregate([
+            {
+                $unwind: { path: "$userMembers", preserveNullAndEmptyArrays: true }
+            },
+            {
+                $match:
+                {
+                    $expr:
+                    {
+                        $or:
+                            [
+                                { $and: [{ $eq: ["$userMembers.userId", tempUserId] }, { $eq: ["$userMembers.status", "accepted"] }] },
+                                { $eq: ["$userId", tempUserId] }
+                            ]
+                    }
+                }
+            },
+            {
+                $group: { "_id": "$_id" }
+            },
+            {
+                $project:
+                {
+                    _id: 0,
+                    "id2": "$_id"
+                }
+            },
+            {
+                $group: { _id: 0, docs: { $push: "$id2" } }
+            },
+            {
+                $project:
+                {
+                    _id: 0
+                }
+            },
+            {
+                $lookup:
+                {
+                    from: "groups",
+                    let: { ids: "$docs" },
+                    pipeline: [
+                        { $match: { $expr: { $not: { $in: ["$_id", "$$ids"] } } } },
+                    ],
+                    as: "groups"
+                }
+            },
+            { $unwind: "$groups" },
+            {
+                $group:
+                {
+                    _id: null,
+                    tempGroupsId: {
+                        $push: "$groups._id"
+                    }
+                }
+            },
+            {
+                $project:
+                {
+                    _id: 0,
+                    tempGroupsId: 1
+                }
+            }
+        ]).exec((error, groupList) => {
+
+            if (error) {
+                reject(error);
+            }
+            if (groupList.length === 0) {
+                reject(`No data groups found for User ${inUserId}`)
+            }
+            else {
+                const groupsUserNotIn = groupList.pop();
+
+                //Get the users from groups where user not in
+                Group.aggregate([
+                    {
+                        $match:
+                        {
+                            $expr:
+                            {
+                                $in: ["$_id", groupsUserNotIn.tempGroupsId]
+                            }
+                        }
+                    },
+                    {
+                        $project:
+                        {
+                            _id: 0,
+                            tempUserId: "$userId"
+                        }
+                    },
+                    {
+                        $unionWith:
+                        {
+                            coll: "groups",
+                            pipeline: [
+                                { $unwind: { path: "$userMembers", preserveNullAndEmptyArrays: true } },
+                                {
+                                    $match:
+                                    {
+                                        $expr:
+                                        {
+                                            $and:
+                                                [
+                                                    { $in: ["$_id", groupsUserNotIn.tempGroupsId] },
+                                                    { $eq: ["$userMembers.status", "accepted"] }
+                                                ]
+                                        }
+                                    }
+                                },
+                                {
+                                    $project:
+                                    {
+                                        _id: 0,
+                                        tempUserId: "$userMembers.userId"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $group:
+                        {
+                            _id: null,
+                            finalUserIds: {
+                                $push: "$tempUserId"
+                            }
+                        }
+                    },
+                    {
+                        $project:
+                        {
+                            _id: 0,
+                            finalUserIds: 1
+                        }
+                    }
+                ]).exec((error, userList) => {
+
+                    if (error) {
+                        reject(error);
+                    }
+                    if (userList.length === 0) {
+                        reject(`No data friends found for User ${inUserId}`);
+                    }
+                    else {
+                        const tempUserFriends = userList.pop();
+
+                        UserFriend.aggregate([
+                            {
+                                $match:
+                                {
+                                    $expr:
+                                    {
+                                        $and:
+                                            [
+                                                { $eq: ["$userId", tempUserId] }
+                                                , { $in: ["$friendUserId", tempUserFriends.finalUserIds] }
+                                                , { $eq: ["$statusRequest", "accepted"] }
+                                            ]
+                                    }
+                                }
+                            },
+                            {
+                                $project:
+                                {
+                                    _id: 0,
+                                    tempFinalFriendId: "$friendUserId"
+                                }
+                            },
+                            {
+                                $unionWith:
+                                {
+                                    coll: "user_friends",
+                                    pipeline: [
+                                        {
+                                            $match:
+                                            {
+                                                $expr:
+                                                {
+                                                    $and:
+                                                        [
+                                                            { $eq: ["$friendUserId", tempUserId] }
+                                                            , { $in: ["$userId", tempUserFriends.finalUserIds] }
+                                                            , { $eq: ["$statusRequest", "accepted"] }
+                                                        ]
+                                                }
+                                            }
+                                        },
+                                        {
+                                            $project:
+                                            {
+                                                _id: 0,
+                                                tempFinalFriendId: "$userId"
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                $group:
+                                {
+                                    _id: null,
+                                    finalFriendId: {
+                                        $push: "$tempFinalFriendId"
+                                    }
+                                }
+                            },
+                            {
+                                $project:
+                                {
+                                    _id: 0,
+                                    finalFriendId: 1
+                                }
+                            }
+                        ]).exec((error, friendList) => {
+
+                            if (error) {
+                                reject(error);
+                            }
+                            if (friendList.length === 0) {
+                                reject(`No data friends list found for User ${inUserId}`)
+                            }
+                            else {
+                                const friendListValidate = friendList.pop();
+
+                                Group.aggregate([
+                                    { $addFields: { "totalMembers": { $size: "$userMembers" } } },
+                                    {
+                                        $match:
+                                        {
+                                            $expr:
+                                            {
+                                                $and:
+                                                    [
+                                                        { $in: ["$_id", groupsUserNotIn.tempGroupsId] },
+                                                        { $in: ["$userId", friendListValidate.finalFriendId] }
+                                                    ]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        $unionWith:
+                                        {
+                                            coll: "groups",
+                                            pipeline: [
+                                                { $addFields: { "totalMembers": { $size: "$userMembers" } } },
+                                                { $unwind: { path: "$userMembers", preserveNullAndEmptyArrays: true } },
+                                                {
+                                                    $match:
+                                                    {
+                                                        $expr:
+                                                        {
+                                                            $and:
+                                                                [
+                                                                    { $in: ["$_id", groupsUserNotIn.tempGroupsId] },
+                                                                    { $not: { $in: ["$userId", friendListValidate.finalFriendId] } },
+                                                                    { $in: ["$userMembers.userId", friendListValidate.finalFriendId] }
+                                                                ]
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        $project:
+                                        {
+                                            userMembers: 0
+                                        }
+                                    }
+                                ]).exec((error, result) => {
+                                    if (error) {
+                                        reject(error);
+                                    }
+                                    if (result.length === 0) {
+                                        reject(`No data found for User ${inUserId}`)
+                                    }
+                                    else {
+                                        resolve(result);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    });
+}
+
+userSchema.statics.findUserInGroup = async (inGroupId, inUserId, inOption) => {
+
+    const tempGroupId = ObjectId(inGroupId);
+    const tempUserId = ObjectId(inUserId);
+
+    return new Promise((resolve, reject) => {
+        Group.aggregate([
+            { $unwind: "$userMembers" },
+            {
+                $match:
+                {
+                    $expr:
+                    {
+                        $and:
+                            [
+                                { $eq: ["$_id", tempGroupId] },
+                                {
+                                    $or:
+                                        [
+                                            { $and: [{ $eq: ["$userMembers.userId", tempUserId] }, { $eq: ["$userMembers.status", "accepted"] }] },
+                                            { $eq: ["$userId", tempUserId] },
+                                        ]
+                                }
+                            ]
+                    }
+                }
+            }
+        ]).exec((error, result) => {
+            if (error) {
+                reject(error);
+            }
+            if (result.length === 0) {
+                if(inOption){
+                    resolve(result);
+                }
+                else{
+                    reject(`No data found for User ${inUserId} and Group ${inGroupId}`)
+                }
+            }
+            else {
+                data = result.pop();
+                resolve(data);
+            }
+        });
+    });
+}
+
+userSchema.statics.userIsAdmin = (inGroupId, inUserId) => {
+
+    const tempGroupId = ObjectId(inGroupId);
+    const tempUserId = ObjectId(inUserId);
+
+    return new Promise((resolve, reject) => {
+        Group.aggregate([
+            { $unwind: "$userMembers" },
+            {
+                $match:
+                {
+                    $expr:
+                    {
+                        $and:
+                            [
+                                { $eq: ["$_id", tempGroupId] },
+                                {
+                                    $or:
+                                        [
+                                            { $and: [{ $eq: ["$userMembers.userId", tempUserId] }, { $eq: ["$userMembers.status", "accepted"] }, { $eq: ["$userMembers.isAdmin", true] }] },
+                                            { $eq: ["$userId", tempUserId] },
+                                        ]
+                                }
+                            ]
+                    }
+                }
+            }
+        ]).exec((error, result) => {
+            if (error) {
+                reject(error);
+            }
+            if (result.length === 0) {
+                reject(`Permission denied for User ${inUserId} is not an administrator in Group ${inGroupId}`);
+            }
+            else{
+                resolve(result);
+            }
+        });
+    });
+}
 
 const User = mongoose.model('users', userSchema)
-
 module.exports = User

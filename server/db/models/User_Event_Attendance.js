@@ -4,17 +4,17 @@ const UsersEventsAttendanceSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: 'User'
+        ref: 'users'
     },
     eventId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: 'Event'
+        ref: 'events'
     },
     groupId: {
         type: mongoose.Schema.Types.ObjectId,
         required: false,
-        ref: 'Groups'
+        ref: 'groups'
     },
     isInvited: {
         type: Boolean

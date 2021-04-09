@@ -19,13 +19,19 @@ app.use(leagueRouter)
 app.use(gameRouter)
 app.use(userAchievementsRouter)
 app.use(UserChallengeRouter)
-
-app.use(require('./routes/FacilityCheckIn'))
-app.use(require('./routes/MemberShips'))
-app.use(require('./routes/Goals'))
-app.use(require('./routes/UserFacilityProfile'))
-app.use(require('./routes/Social/user_posts'))
+app.use(require('./routes/FacilityCheckIn'));
+app.use(require('./routes/MemberShips'));
+app.use(require('./routes/Goals'));
+app.use(require('./routes/Social'));
+app.use(require('./routes/Social/profile'));
+app.use(require('./routes/Social/Groups'));
+app.use(require('./routes/UserFacilityProfile'));
+app.use(require('./routes/Social/user_posts'));
+app.use(require('./routes/Social/Invitations'));
 app.use(require('./routes/LeaderBoard'));
+
+
+
 
 app.listen(port,(err)=>{
         if(err)  throw new Error(err);

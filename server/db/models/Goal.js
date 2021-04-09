@@ -1,5 +1,6 @@
 const mongooose = require('mongoose');
 
+
 const goalSchema = new mongooose.Schema({
     goalName:{
         type: String,

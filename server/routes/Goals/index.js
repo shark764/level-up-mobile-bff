@@ -80,4 +80,25 @@ app.post('/goalscategories/:id',[validateAccess,verifyToken],async(req,res)=>{
     }
 })
 
+app.get('/mygoals/:userId',[validateAccess,verifyToken],async(req,res)=>{
+    try{
+        const {userId}= req.params;
+        const {facilityId} = req.body;
+        const userFacility = await UserFacility.getUserFacility(userId,facilityId);
+       
+        if(userFacility){
+               UserGoal.findAllUserGoals(userFacility).then((goals=>{
+                   res.json(success({requestId: req.id, data: {goals}}))
+               })).catch(error=>{
+                   res.status(500).json({requestId:req.id, code:500, message: error})
+               })
+        }else{
+            res.status(400).json(error({requestId: req.id, code:400, message: "Wrong params sent please check if valid." }))
+        }
+        
+    }catch(e){
+        res.status(500).json({requestId: req.id, code: 500, message: err})
+    }
+})
+
 module.exports = app;

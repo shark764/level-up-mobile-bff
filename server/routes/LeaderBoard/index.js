@@ -11,7 +11,7 @@ app.get('/leaderboard',async(req,res)=>{
             User.getGlobalRank(userId).then(result=>{
                 res.json(success({reqId: req.id, data: {results, result}}))
             }).catch(e=>{
-                res.status(500).json(error({reqId: req.id, code: 500, message: e}))
+                res.status(500).json(error({reqId: req.id, code: 500, message: e.message}))
             });
 
         }else{

@@ -19,7 +19,7 @@ app.get('/goalscategories',validateAccess,async(req,res)=>{
     }
 })
 
-app.get('/goals/:id',async(req,res)=>{
+app.get('/goals/:id',[validateAccess,verifyToken],async(req,res)=>{
     try{
         const id = req.params.id;
         const {userId,facilityId} = req.body;

@@ -104,8 +104,8 @@ app.get('/membership/:membershipId',validateAccess,async(req,res)=>{
         }else{
             res.status(404).json(error({requestId: req.id,code:404,message: "No membership found with that id."}))
         }
-    }catch(error){
-        res.status(500).json(error({requestId:req.id,code:500 ,message:error}))
+    }catch(err){
+        res.status(500).json(error({requestId:req.id,code:500 ,message:err}))
     }
 })
 

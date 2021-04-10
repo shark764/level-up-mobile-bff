@@ -8,6 +8,7 @@ const validateAccess = require('../../middlewares/validateAccess');
 const verifyToken = require('../../middlewares/verifyToken');
 const ObjectId = require('mongoose').Types.ObjectId;
 const {error,success} = require('../../utils/helpers/response')
+const validator = require('validator');
 
 app.get('/goalscategories',validateAccess,async(req,res)=>{
     try{
@@ -18,11 +19,12 @@ app.get('/goalscategories',validateAccess,async(req,res)=>{
     }
 })
 
-app.get('/goals/:id',[validateAccess,verifyToken],async(req,res)=>{
-    
+app.get('/goals/:id',async(req,res)=>{
+    try{
         const id = req.params.id;
         const {userId,facilityId} = req.body;
         const userFacility = await UserFacility.find({userId,facilityId})
+        if(userFacility.length === 0) throw new Error("No User/Facility Found, check body payload"); 
         const userGoals = await UserGoal.find({userFacilityId: userFacility});
         Goal.aggregate([
             {
@@ -41,7 +43,10 @@ app.get('/goals/:id',[validateAccess,verifyToken],async(req,res)=>{
             if(err) res.status(500).json(error({requestId: req.id, code: 500, message: err}))
             res.json(success({requestId: req.id, data:{goals}}))
         })
-           
+        
+    }catch(e){
+        res.status(500).json(error({reqId:req.id, code:500, message: e.message}))
+    }
    
 })
 

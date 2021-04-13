@@ -27,6 +27,7 @@ app.use(require('./routes/Social/profile'));
 app.use(require('./routes/Social/Groups'));
 app.use(require('./routes/UserFacilityProfile'));
 app.use(require('./routes/Social/user_posts'));
+app.use(require('./routes/Social/events'));
 app.use(require('./routes/Social/Invitations'));
 app.use(require('./routes/LeaderBoard'));
 

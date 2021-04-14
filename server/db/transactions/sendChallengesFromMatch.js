@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Challenge = require('../models/Challenge')
 const UserChallenge = require('../models/User_Challenge')
 const UserMatch = require('../models/User_Match')
+const validator = require('validator');
 
 
 const sendChallengesFromMatch = async function (data) {
@@ -9,10 +10,10 @@ const sendChallengesFromMatch = async function (data) {
     return new Promise(async (resolve, reject) => {
         const session = await mongoose.startSession()
         try {
-            const match = await UserMatch.findOne({
-                _id: data.matchId 
-            })
-
+            if(!validator.isMongoId(data.matchId) || !validator.isMongoId(data.challengeTo)) reject("Invalid IDS format, please check body payload");
+            const match = await UserMatch.findById(data.matchId);
+            if(!match) reject("No Match found, check body matchID");
+            
             const pendingChallange = await UserChallenge.find({
                 matchId: match._id,
                 challengeFrom: match.userFacilityId,

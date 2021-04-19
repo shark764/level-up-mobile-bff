@@ -19,6 +19,17 @@ const userSchema = new mongoose.Schema({
         type: {type: String, default: "Point"},
         coordinates: [{type: Number}]
     },
+    userProfile: {
+        about: {
+            type: String
+        },
+        photo: {
+            type: String
+        },
+        coverPhoto: {
+            type: String
+        }
+    },
     password: {
         type: String,        
         required: false,
@@ -493,6 +504,16 @@ userSchema.statics.getUserById = async (id) => {
     return user;
     
 
+}
+
+// add avatar picture
+userSchema.statics.addAvatar = async (url, id) => {
+    const user = await User.findById(id)
+    
+    //user.userProfile.pop()
+    user.userProfile.photo = url
+    await user.save()
+    return user
 }
 
 userSchema.statics.findUserInGroups = async (inUserId) => {

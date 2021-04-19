@@ -1,12 +1,25 @@
 const multer  = require('multer');
+
+const allowedImages = new RegExp(process.env.ALLOWED_IMAGE_TYPES, 'g')
+
 const storage = multer.memoryStorage({
     destination: (req,file,callback)=>{
         callback(null,'')
     }
 });
 
-const upload = multer({storage}).single('image');
-
+const upload = multer({
+    storage,
+    limits: { 
+        fileSize: parseInt(process.env.ALLOWED_IMAGE_SIZE)
+    },
+    fileFilter(req, file, cb) {
+        if(!file.originalname.match(allowedImages)) {
+            return cb(new Error('Please upload an image'))            
+        } 
+        cb(undefined, true)
+    }
+});
 
 module.exports = {
     upload

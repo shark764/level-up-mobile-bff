@@ -11,8 +11,13 @@ const router = express.Router()
 
 /// POST /socia/new/event/
 router.post('/social/new/event', validateAccess, async (req, res) => {
-    if (req.body.location.coordinates.length != 2) {
-       return res.status(400).json(error({ requestId: req.id, code: 400, message: 'Coordinates are required' }))
+    if(!req.body.location) {
+        return res.status(400).json(error({ requestId: req.id, code: 400, message: 'Coordinates are required' }))
+    }
+    else {
+        if (req.body.location.coordinates.length != 2) {
+           return res.status(400).json(error({ requestId: req.id, code: 400, message: 'Coordinates are required' }))
+        }
     }
     const event = new Event({
         ...req.body,
@@ -47,7 +52,7 @@ router.patch('/social/event/:id', validateAccess, async (req, res) => {
         const event = await Event.findOne({ _id: req.params.id, userId: req.user.data._id })
     
         if (!event) {
-            return res.status(404).json(error({ requestId: req.id, code: 404 }))
+            return res.status(404).json(error({ requestId: req.id, code: 404, message: 'Event not found' }))
         }
     
         //updates.forEach((update) => event[update] = req.body[update])

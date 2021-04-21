@@ -11,6 +11,9 @@ const router = express.Router()
 
 /// POST /socia/new/event/
 router.post('/social/new/event', validateAccess, async (req, res) => {
+    if (req.body.location.coordinates.length != 2) {
+       return res.status(400).json(error({ requestId: req.id, code: 400, message: 'Coordinates are required' }))
+    }
     const event = new Event({
         ...req.body,
         userId: req.user.data._id        
@@ -47,7 +50,20 @@ router.patch('/social/event/:id', validateAccess, async (req, res) => {
             return res.status(404).json(error({ requestId: req.id, code: 404 }))
         }
     
-        updates.forEach((update) => event[update] = req.body[update])
+        //updates.forEach((update) => event[update] = req.body[update])
+        try {
+            updates.forEach((update) => {
+                if(update == 'location') {
+                    // check if coordinate is send to update and if coodinates field have values
+                    if (req.body[update].coordinates.length != 2) {
+                        throw BreakException
+                    }
+                }
+                event[update] = req.body[update]
+            })
+        } catch (err) {
+            return res.status(400).json(error({ requestId: req.id, code: 400, message: 'Please check coordinates values' })) 
+        }
         await event.save()
         res
             .status(200)

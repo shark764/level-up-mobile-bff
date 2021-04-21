@@ -9,13 +9,13 @@ const success = require('../../utils/helpers/response').success
 const error = require('../../utils/helpers/response').error
 const router = express.Router()
 
-const uploadSingleFile = upload.single('image')
+//const uploadSingleFile = upload.single('image')
 
 /// POST /user/avatar
 router.post('/user/avatar/', validateAccess, async (req,res) => {
     try {
         
-        uploadSingleFile(req, res, function(err) {
+        upload(req, res, function(err) {
             if (req.file === undefined) {
                 return res.status(400).json(error({ requestId: req.id, code: 400, message: 'Please upload an image' }))
             }

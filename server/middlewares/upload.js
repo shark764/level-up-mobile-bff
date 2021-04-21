@@ -19,7 +19,7 @@ const upload = multer({
         } 
         cb(undefined, true)
     }
-});
+}).single('image');
 
 module.exports = {
     upload

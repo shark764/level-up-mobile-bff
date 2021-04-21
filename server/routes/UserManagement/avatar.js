@@ -16,7 +16,7 @@ router.post('/user/avatar/', validateAccess, async (req,res) => {
     try {
         
         upload(req, res, function(err) {
-            if (req.file === undefined) {
+            if (!req.file) {
                 return res.status(400).json(error({ requestId: req.id, code: 400, message: 'Please upload an image' }))
             }
             if(err) {
@@ -31,7 +31,6 @@ router.post('/user/avatar/', validateAccess, async (req,res) => {
                     res.status(400).json(error({ requestId: req.id, code: 400, message: err }))
                 }
                 const user = await User.addAvatar(data.Location, req.user.data._id)
-                console.log(user)
                 res
                 .status(200)
                 .json(success({

@@ -31,7 +31,8 @@ app.use(require('./routes/Social/events'));
 app.use(require('./routes/Social/feeds'));
 app.use(require('./routes/Social/Invitations'));
 app.use(require('./routes/LeaderBoard'));
-app.use(require('./routes/uploads'))
+//app.use(require('./routes/uploads'))
+app.use(require('./routes/UserManagement/avatar'))
 
 
 

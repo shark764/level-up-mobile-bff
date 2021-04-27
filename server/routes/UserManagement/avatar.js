@@ -18,8 +18,11 @@ router.post('/user/avatar/', validateAccess, async (req,res) => {
         
         upload(req, res, function(err) {
             if (err instanceof multer.MulterError) {
-                return res.status(400).json(error({ requestId: req.id, code: 400, message: err.message }))
-            } else if (err) {
+                if (err.code === 'LIMIT_FILE_SIZE') {
+                    return res.status(400).json(error({ requestId: req.id, code: 400, message: 'Image exceeds the size limit' }))    
+                }
+                return res.status(400).json(error({ requestId: req.id, code: 400, message: 'There is a problem uploading your image' }))
+            } else if (err) {                
                 return res.status(400).json(error({ requestId: req.id, code: 400, message: err.message }))
             }
             if (!req.file) {

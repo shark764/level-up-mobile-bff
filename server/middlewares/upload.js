@@ -13,9 +13,9 @@ const upload = multer({
     limits: { 
         fileSize: parseInt(process.env.ALLOWED_IMAGE_SIZE)
     },
-    fileFilter(req, file, cb) {
+    fileFilter(req, file, cb) {        
         if(!file.originalname.match(allowedImages)) {
-            return cb(new Error('Please upload an image'))            
+            return cb(new Error('Invalid file extension'))
         } 
         cb(undefined, true)
     }

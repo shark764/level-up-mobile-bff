@@ -6,32 +6,33 @@ const verifyToken = require('../../middlewares/verifyToken');
 const success = require('../../utils/helpers/response').success;
 const error = require('../../utils/helpers/response').error;
 const ObjectId = require('mongoose').Types.ObjectId;
+const validator = require('validator');
 
 //1. Fetch the user's profile
-app.get('/social/profile/:userId', [validateAccess,verifyToken], async (req, res) => {
+app.get('/social/profile/:userId', [validateAccess,verifyToken],async (req, res) => {
     try {
         const { userId } = req.params;
-        const { q } = req.query;
+        const { reqUserId } = req.body;
 
-        if(typeof q === 'undefined' || q === ""){
-            res.status(500)
+        if(!validator.isMongoId(reqUserId)){
+            return res.status(500)
             .json(error({
                 requestId: req.id,
                 code: 500,
-                message: `Missing parameter in query`
+                message: `Missing or wron parameter requested user Id`
             }));
         }
 
         User.aggregate([
             {//Stage 0 - Main document
-                $match: { "_id": ObjectId(userId) }
+                $match: { "_id": ObjectId(reqUserId) }
             },
             {//Join with the user's posts
                 $lookup:
                 {
                     from: "user_posts",
                     pipeline: [
-                        { $match: { userId: ObjectId(userId) } },
+                        { $match: { userId: ObjectId(reqUserId) } },
                         {
                             $project:
                             {
@@ -47,7 +48,7 @@ app.get('/social/profile/:userId', [validateAccess,verifyToken], async (req, res
                 {
                     from: "user_facilities",
                     pipeline: [
-                        { $match: { userId: ObjectId(userId) } },
+                        { $match: { userId: ObjectId(reqUserId) } },
                         {
                             $lookup:
                             {
@@ -100,14 +101,14 @@ app.get('/social/profile/:userId', [validateAccess,verifyToken], async (req, res
                 {
                     from: "user_friends",
                     pipeline: [
-                        { $match: { userId: ObjectId(userId) } },
+                        { $match: { userId: ObjectId(reqUserId) } },
                         { $project: { "finalUserId": "$friendUserId" } },
                         {
                             $unionWith:
                             {
                                 coll: "user_friends",
                                 pipeline: [
-                                    { $match: { friendUserId: ObjectId(userId) } },
+                                    { $match: { friendUserId: ObjectId(reqUserId) } },
                                     { $project: { "finalUserId": "$userId" } }
                                 ]
                             }
@@ -151,15 +152,15 @@ app.get('/social/profile/:userId', [validateAccess,verifyToken], async (req, res
                                         {
                                             $and:
                                                 [
-                                                    { userId: ObjectId(userId) },
-                                                    { friendUserId: ObjectId(q) },
+                                                    { userId: ObjectId(reqUserId) },
+                                                    { friendUserId: ObjectId(userId) },
                                                 ]
                                         },
                                         {
                                             $and:
                                                 [
-                                                    { userId: ObjectId(q) },
-                                                    { friendUserId: ObjectId(userId) },
+                                                    { userId: ObjectId(userId) },
+                                                    { friendUserId: ObjectId(reqUserId) },
                                                 ]
                                         }
                                     ]
@@ -174,7 +175,7 @@ app.get('/social/profile/:userId', [validateAccess,verifyToken], async (req, res
                 $addFields:
                 {
                     areFriends: { $eq: ["$areFriends.statusRequest", "accepted"] },
-                    globalRanking: await User.getGlobalRank(userId),
+                    globalRanking: await User.getGlobalRank(reqUserId),
                 }
             },
             {//Selecting the info to show
@@ -194,7 +195,6 @@ app.get('/social/profile/:userId', [validateAccess,verifyToken], async (req, res
                 }
             }
         ]).exec((e, result) => {
-            console.log(e);
             if(e){
                 res.status(500)
                 .json(error({
@@ -203,11 +203,11 @@ app.get('/social/profile/:userId', [validateAccess,verifyToken], async (req, res
                     message: e.message
                 }));
             }else if (result.length === 0) {
-                res.status(400)
+                res.status(404)
                 .json(error({
                     requestId: req.id,
-                    code: 400,
-                    message: `No Profile found with ID ${userId}`
+                    code: 404,
+                    message: `No Profile found with ID ${reqUserId}`
                 }));
             } else {
                 user = result.pop()

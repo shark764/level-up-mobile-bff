@@ -2,539 +2,369 @@ const express = require('express');
 const app = express();
 const User = require('../../../db/models/User');
 const Group = require('../../../db/models/Group');
-const UserFriend = require('../../../db/models/User_Friend');
-const UserEventAttendace = require('../../../db/models/User_Event_Attendance');
 const validateAccess = require('../../../middlewares/validateAccess');
 const verifyToken = require('../../../middlewares/verifyToken');
 const ObjectId = require('mongoose').Types.ObjectId;
 const { getAllGroupInfo } = require('../Helper');
 const success = require('../../../utils/helpers/response').success;
 const error = require('../../../utils/helpers/response').error;
+const validator = require('validator');
 
 //3. Groups that the current user does/doesn't belong
-app.get('/social/groups/:userId', [validateAccess,verifyToken],async (req, res) => {
+app.get('/social/groups/:userId', [validateAccess, verifyToken], async (req, res) => {
     try {
         //Get the userId
         const { userId } = req.params;
         const { q } = req.query; //true or false in order to show groups
 
-        showUserGroup = false;
-        if (!(typeof q === 'undefined')) {
-            if (q && q === 'true') {
-                showUserGroup = true;
+        const groupsProcess = new Promise((resolve, reject) => {
+            if (!validator.isMongoId(userId)) {
+                return reject(`Missing or wrong parameter userId`);
             }
-            else {
-                if (!(q && q === 'false')) {
-                    res.status(400)
-                        .json(error({
-                            requestId: req.id,
-                            code: 400,
-                            message: `Wrong query input received ${q}`
-                        }));
+
+            showUserGroup = false;
+            if (q) {
+                if (q === 'true') {
+                    showUserGroup = true;
+                }
+                else if (!(q === 'false')) {
+                    return reject(`Wrong query input received ${q}`);
                 }
             }
-        }
 
-        //true, fetch the groups in which the current user belong
-        //false, fetch the groups in which the current user doesn't belong
-        if (showUserGroup) {
-            await User.findUserInGroups(userId)
-                .then(groups => res.status(200)
-                    .json(success({
-                        requestId: req.id,
-                        data: groups
-                    })))
-                .catch(e => res.status(400)
-                    .json(error({
-                        requestId: req.id,
-                        code: 400,
-                        message: e.message
-                    })))
-        }
-        else {
-            await User.findUserNotInGroups(userId)
-                .then(groups => res.status(200)
-                    .json(success({
-                        requestId: req.id,
-                        data: groups
-                    })))
-                .catch(e => res.status(400)
-                    .json(error({
-                        requestId: req.id,
-                        code: 400,
-                        message: e.message
-                    })))
-        }
+            //true, fetch the groups in which the current user belong
+            //false, fetch the groups in which the current user doesn't belong            
+            if (showUserGroup) {
+                User.findUserInGroups(userId)
+                    .then(groups => resolve(groups))
+                    .catch(e => reject(e));
+            }
+            else {
+                User.findUserNotInGroups(userId)
+                    .then(groups => resolve(groups))
+                    .catch(e => reject(e));
+            }
+        });
 
-    } catch (error) {
-        console.log(error);
-        res.status(500)
-            .json(error({
-                requestId: req.id,
-                code: 500,
-                message: e.message
-            }));
+        groupsProcess
+            .then(groups => { res.status(200).json(success({ requestId: req.id, data: groups })); })
+            .catch(e => { res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` })); });
+
+    } catch (e) {
+        res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
     }
-})
+});
 
 
 //4. Groups of the user's friends in which the current user is not in.
-app.get('/social/friends/groups/:userId',[validateAccess,verifyToken], async (req, res) => {
+app.get('/social/friends/groups/:userId', [validateAccess, verifyToken], async (req, res) => {
     try {
         //Get the id
         const { userId } = req.params;
 
+        if (!validator.isMongoId(userId)) {
+            return res.status(404).json(error({ requestId: req.id, code: 500, message: `Missing or wrong parameter userId` }));
+        }
+
         //Fetch the groups in which the user not in
         await User.myFriendsGroups(userId)
-            .then(friendsGroups => res.status(200)
-                .json(success({
-                    requestId: req.id,
-                    data: friendsGroups
-                })))
-            .catch(e => res.status(400)
-                .json(error({
-                    requestId: req.id,
-                    code: 400,
-                    message: e.message
-                })))
-    } catch (error) {
-        res.status(500)
-            .json(error({
-                requestId: req.id,
-                code: 500,
-                message: e.message
-            }));
+            .then(friendsGroups => res.status(200).json(success({ requestId: req.id, data: friendsGroups })))
+            .catch(e => res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` })))
+    } catch (e) {
+        res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
     }
-})
+});
 
 
 //5. Get a specific group with members, posts and events if member
-app.get('/social/group/:id',async (req, res) => {
+app.get('/social/group/:groupId', [validateAccess, verifyToken], async (req, res) => {
     try {
         //Get the parameters
-        const { id } = req.params;
-        const { q } = req.query;
+        const { groupId } = req.params;
+        const { userId } = req.body;
 
-        if (typeof q === 'undefined' || q === "") {
-            return res.json({ success: false, error: `Missing parameter in query` })
-        }
-
-        //By default the info wont be displayed
         showAllInfo = false;
-
-        //If the user is member, the full information will be displayed
-        const groupConf = await Group.findById(id);
-        if (groupConf) {
-            if (groupConf.privacySettings === 'public') {
-                showAllInfo = true;
+        const infoProcess = new Promise((resolve, reject) => {
+            if (!validator.isMongoId(groupId)) {
+                return reject(`Missing or wrong parameter groupId`);
             }
-            else {
-                await User.findUserInGroup(id, q, true)
-                    .then((data) => {
-                        if (data.length !== 0) {
-                            if (data.userMembers.isAdmin) {
-                                showAllInfo = true
+
+            if (!validator.isMongoId(userId)) {
+                return reject(`Missing or wrong parameter userId`);
+            }
+
+            //If the user is member, the full information will be displayed
+            const groupConf = Group.findById(groupId);
+            groupConf
+                .then(result => {
+                    if (result) {
+                        if (groupConf.privacySettings === 'public') {
+                            showAllInfo = true;
+                        }
+                        else {
+                            if (result.userId === userId) {
+                                showAllInfo = true;
+                            }
+                            else {
+                                const member = result.userMembers.filter(item => {
+                                    return (item.userId.toString() === userId && item.status === "accepted")
+                                });
+
+                                if (member.length !== 0) {
+                                    getMember = member.pop();
+                                    if (getMember.isAdmin) {
+                                        showAllInfo = true;
+                                    }
+                                }
                             }
                         }
-                    })
-                    .catch(e => res.status(400)
-                        .json(error({
-                            requestId: req.id,
-                            code: 400,
-                            message: e.message
-                        })));
-            }
 
-            await getAllGroupInfo(id, showAllInfo)
-                .then(infoGroup => res.status(200)
-                    .json(success({
-                        requestId: req.id,
-                        data: infoGroup
-                    })))
-                .catch(e => res.status(404)
-                    .json(error({
-                        requestId: req.id,
-                        code: 404,
-                        message: e.message
-                    })));
-        }
-        else {
-            res.status(400)
-                .json(error({
-                    requestId: req.id,
-                    code: 400,
-                    message: `No data found for Group ${id}`
-                }));
-        }
+                        getAllGroupInfo(groupId, showAllInfo)
+                            .then(infoGroup => resolve(infoGroup))
+                            .catch(e => reject(e));
+                    }
+                    else {
+                        reject(`No data found for Group ${groupId}`);
+                    }
+                })
+                .catch(e => reject(e));
+        });
+
+        infoProcess
+            .then(infoGroup => res.status(200).json(success({ requestId: req.id, data: infoGroup })))
+            .catch(e => res.status(404).json(error({ requestId: req.id, code: 404, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` })));
+
     } catch (e) {
-        console.log('error general');
-        res.status(500)
-            .json(error({
-                requestId: req.id,
-                code: 500,
-                message: e.message
-            }));
+        res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
     }
 })
 
 
 //6. Edit the group
-app.put('/social/group/:id', async (req, res) => {
+app.put('/social/group/:groupId', [validateAccess, verifyToken], async (req, res) => {
     try {
+
         //Fetch the parameteres
-        const id = req.params.id;
+        const { groupId } = req.params;
+        const { userId, groupName, description, privacySettings, coverPhoto, status, administrators } = req.body;
 
-        //Validate the group, user and permission to modify
-        await User.userIsAdmin(id, req.body.userId);
+        const editResult = new Promise((resolve, reject) => {
 
-        //Get the values to update
-        const tempMembers = await Promise.all(req.body.administrators.map(async (item) => {
-
-            //if the user is equal to the owner is not going to be added
-            if (item !== req.body.userId) {
-                //validate if the user exist like a member administrator
-                return itemAdd = await User.findUserInGroup(id, item, true)
-                    .then(data => {
-                        if (data.length === 0) {
-                            return {
-                                "userId": ObjectId(item),
-                                "isAdmin": true,
-                                "status": "accepted",
-                                "dateAccepted": new Date
-                            }
-                        }
-                    })
-                    .catch(e => res.status(500)
-                        .json(error({
-                            requestId: req.id,
-                            code: 500,
-                            message: e
-                        })));
+            if (!validator.isMongoId(groupId) || !validator.isMongoId(userId) || !groupName || !description || !privacySettings ||
+                (privacySettings !== 'public' && privacySettings !== 'private') || !coverPhoto || !status || !administrators) {
+                return reject(`Missing or wrong parameter please check the payload`);
             }
-        }));
 
-        userMembers = tempMembers.filter(item => item);
+            const groupExist = Group.findById(groupId);
+            groupExist
+                .then(getGroup => {
+                    if (getGroup) {
+                        const isAdminUser = User.userIsAdmin(groupId, userId);
+                        isAdminUser
+                            .then(infoGroup => {
+                                objAdministrators = administrators.map(item => ObjectId(item));
+                                Group.aggregate([
+                                    { $unwind: "$userMembers" },
+                                    { $match: { $expr: { $and: [{ $eq: ["$_id", ObjectId(groupId)] }, { $in: ["$userMembers.userId", objAdministrators] }] } } }
+                                ]).exec((e, result) => {
+                                    if (e) 
+                                        return reject(e);
+                                    if (result.length === 0) {
+                                        newAdmins = administrators.map((item) => {
+                                            return {
+                                                "userId": ObjectId(item),
+                                                "isAdmin": true,
+                                                "status": "accepted",
+                                                "dateAccepted": Date.now()
+                                            }
+                                        });
 
-        const queryGroup = { _id: ObjectId(req.params.id) }
-        const updateGroup = {
-            groupName: req.body.groupName
-            , description: req.body.description
-            , coverPhoto: req.body.coverPhoto
-            , privacySettings: req.body.privacySettings
-            , status: req.body.status
-            , $addToSet: {
-                userMembers
-            }
-        }
+                                        getGroup.groupName = groupName;
+                                        getGroup.description = description;
+                                        getGroup.coverPhoto = coverPhoto;
+                                        getGroup.privacySettings = privacySettings;
+                                        getGroup.status = status;
+                                        newAdmins.map(item => getGroup.userMembers.push(item));
 
-        //Update the collection
-        await Group.updateOne(queryGroup,
-            updateGroup,
-            async function (e, doc) {
-                if (e) {
-                    res.status(500)
-                        .json(error({
-                            requestId: req.id,
-                            code: 500,
-                            message: e
-                        }));
-                }
-                else {
-                    await getAllGroupInfo(id, true)
-                        .then(infoGroup => res.status(200)
-                            .json(success({
-                                requestId: req.id,
-                                data: infoGroup
-                            })))
-                        .catch(e => res.status(404)
-                            .json(error({
-                                requestId: req.id,
-                                code: 404,
-                                message: e.message
-                            })));
-                }
-            }
-        )
+                                        resolve(getGroup.save());
+                                    }
+                                    else {
+                                        reject(`Administrator Id already exist like a Admin User Member, please check the payload`);
+                                    }
+                                });
+                            })
+                            .catch(e => reject(e));
+                    }
+                    else {
+                        reject(`Group with Id ${groupId} doesn't exist`)
+                    }
+                })
+                .catch(e => reject(e));
+        })
+
+        editResult
+            .then(infoGroup => res.status(200).json(success({ requestId: req.id, data: infoGroup })))
+            .catch(e => res.status(404).json(error({ requestId: req.id, code: 404, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` })));
     } catch (e) {
-        console.log(e);
-        res.status(500)
-            .json(error({
-                requestId: req.id,
-                code: 500,
-                message: e
-            }));
+        res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
     }
 })
 
 
 //7. Create a new group
-app.post('/social/new/group', async (req, res) => {
+app.post('/social/new/group', [validateAccess, verifyToken],async (req, res) => {
     try {
 
-        //Validate if the user exist
-        userExist = await User.findById(req.body.userId);
+        const { userId, groupName, description, privacySettings, coverPhoto, status } = req.body;
 
-        if (userExist) {
-            //Validate the group's name
-            nameExist = await Group.findOne({ groupName: req.body.groupName });
-
-            if (nameExist) {
-                res.status(401)
-                    .json(error({
-                        requestId: req.id,
-                        code: 401,
-                        message: `The group name '${req.body.groupName}' already exist`
-                    }));
+        const groupProcess = new Promise((resolve, reject) => {
+            if (!validator.isMongoId(userId) || !groupName || !description || !privacySettings ||
+                (privacySettings !== 'public' && privacySettings !== 'private') || !coverPhoto || !status) {
+                return reject(`Missing or wrong parameter please check the payload`);
             }
-            else {
-                //set the values
-                group = new Group({
-                    userId: ObjectId(req.body.userId),
-                    groupName: req.body.groupName,
-                    description: req.body.description,
-                    coverPhoto: req.body.coverPhoto,
-                    privacySettings: req.body.privacySettings,
-                    status: req.body.status
+
+            const userExist = User.findById(userId);
+            userExist
+                .then(result => {
+                    if (result) {
+                        const nameExist = Group.findOne({ groupName: groupName });
+                        nameExist
+                            .then(result => {
+                                if (result) {
+                                    return reject(`The group name '${groupName}' already exist`);
+                                }
+
+                                group = new Group({
+                                    userId: ObjectId(req.body.userId),
+                                    groupName: groupName,
+                                    description: description,
+                                    coverPhoto: coverPhoto,
+                                    privacySettings: privacySettings,
+                                    status: status
+                                });
+
+                                resolve(group.save());
+                            })
+                            .catch(e => reject(e));
+                    }
+                    else {
+                        reject(`User ${userId} doesn't exist`)
+                    }
                 })
+                .catch(e => reject(e))
+        });
 
-                await group.save()
-                    .then(data => res.status(200)
-                        .json(success({
-                            requestId: req.id,
-                            data: group
-                        })))
-                    .catch(e => res.status(500)
-                        .json(error({
-                            requestId: req.id,
-                            code: 500,
-                            message: e.message
-                        })));
-            }
-        }
-        else {
-            res.status(404)
-                .json(error({
-                    requestId: req.id,
-                    code: 404,
-                    message: `User ${req.body.userId} doesn't exist`
-                }));
-        }
+        groupProcess
+            .then(group => res.status(200).json(success({ requestId: req.id, data: group })))
+            .catch(e => res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` })));
 
-    } catch (error) {
-        console.log(error);
-        res.status(500)
-            .json(error({
-                requestId: req.id,
-                code: 500,
-                message: e.message
-            }));
+    } catch (e) {
+        res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
     }
 })
 
 //8. Join to group if the group is public
-app.post('/social/group/join/:id', async (req, res) => {
+app.post('/social/group/join/:id', [validateAccess, verifyToken], async (req, res) => {
     try {
-        //Validate if the user exist
-        userExist = await User.findById(req.body.userId);
-        if (userExist) {
-            //Validate the group
-            groupExist = await Group.findById(req.params.id);
-            if (groupExist) {
-                //Validate if user exist like a member
-                await Group.aggregate([
-                    { $unwind: {path: "$userMembers", preserveNullAndEmptyArrays: true }},
-                    {
-                        $match:
-                        {
-                            $expr:
-                            {
-                                $and:
-                                    [
-                                        { $eq: ["$_id", ObjectId(req.params.id)] },
-                                        { $eq: ["$userMembers.userId", ObjectId(req.body.userId)] },
-                                        {$ne :["$userMembers.status","rejected"] }
-                                    ]
-                            }
-                        }
-                    }
-                ]).then((data) => {
-                    if (data.length === 0) {
-                        tempAccepted = "pending";
-                        if (groupExist.privacySettings === "public") {
-                            tempAccepted = "accepted"
-                        }
-                        const queryGroup = { _id: ObjectId(req.params.id) }
-                        const updateGroup = {
-                            $addToSet:
-                            {
-                                "userMembers":
-                                {
-                                    "userId": ObjectId(req.body.userId),
-                                    "isAdmin": false,
-                                    "status": tempAccepted,
-                                    "dateAccepted": new Date
-                                }
-                            }
-                        }
 
-                        Group.updateOne(
-                            queryGroup,
-                            updateGroup,
-                            async function (e, doc) {
-                                if (e) {
-                                    res.status(500)
-                                        .json(error({
-                                            requestId: req.id,
-                                            code: 500,
-                                            message: e.message
-                                        }));
+        const { userId } = req.body;
+
+        const joiningProcess = new Promise((resolve, reject) => {
+            if (!validator.isMongoId(userId)) {
+                return reject(`Missing or wrong parameter UserId`);
+            }
+
+            userExist = User.findById(userId);
+            userExist
+                .then(result => {
+                    if (result) {
+                        groupExist = Group.findById(req.params.id);
+                        groupExist
+                            .then(result => {
+                                if (result) {
+                                    const member = result.userMembers.filter(item => {
+                                        return (item.userId.toString() === userId && item.status !== "rejected")
+                                    });
+
+                                    if (member.length === 0) {
+                                        tempAccepted = "pending";
+                                        if (result.privacySettings === "public") {
+                                            tempAccepted = "accepted"
+                                        }
+
+                                        const newMember = {
+                                            "userId": ObjectId(userId),
+                                            "isAdmin": false,
+                                            "status": tempAccepted,
+                                            "dateAccepted": Date.now()
+                                        }
+
+                                        result.userMembers.push(newMember);
+                                        resolve(result.save());
+                                    }
+                                    else {
+                                        reject(`User ${userId} already exist in the group`);
+                                    }
                                 }
                                 else {
-                                    await getAllGroupInfo(req.params.id, (groupExist.privacySettings === 'public'))
-                                        .then(infoGroup => res.status(200)
-                                            .json(success({
-                                                requestId: req.id,
-                                                data: infoGroup
-                                            })))
-                                        .catch(e => res.status(404)
-                                            .json(error({
-                                                requestId: req.id,
-                                                code: 500,
-                                                message: e.message
-                                            })));
+                                    reject(`Group ${req.params.id} doesn't exist`);
                                 }
-                            }
-                        )
+                            })
+                            .catch(e => reject(e));
                     }
                     else {
-                        res.status(401)
-                            .json(error({
-                                requestId: req.id,
-                                code: 401,
-                                message: `User ${req.body.userId} already exist in the group`
-                            }));
+                        reject(`User ${userId} doesn't exist`);
                     }
                 })
-                    .catch(e => res.status(404)
-                        .json(error({
-                            requestId: req.id,
-                            code: 404,
-                            message: e
-                        })));
-            }
-            else {
-                res.status(404)
-                    .json(error({
-                        requestId: req.id,
-                        code: 404,
-                        message: `Group ${req.params.id} doesn't exist`
-                    }));
-            }
-        }
-        else {
-            res.status(404)
-                .json(error({
-                    requestId: req.id,
-                    code: 404,
-                    message: `User ${req.body.userId} doesn't exist`
-                }));
-        }
-    } catch (error) {
-        console.log(error);
-        res.status(500)
-            .json(error({
-                requestId: req.id,
-                code: 500,
-                message: e.message
-            }));
+                .catch(e => reject(e));
+        });
+
+        joiningProcess
+            .then(infoGroup => res.status(200).json(success({ requestId: req.id, data: infoGroup })))
+            .catch(e => res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` })));
+
+    } catch (e) {
+        res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
     }
 })
 
 //9. Unjoin an user from an specific group
-app.delete('/social/group/unjoin/:id', async (req, res) => {
-
+app.delete('/social/group/unjoin/:id', [validateAccess,verifyToken], async (req, res) => {
     try {
-        await Group.aggregate([
-            { $unwind: "$userMembers" },
-            {
-                $match:
-                {
-                    $expr:
-                    {
-                        $and:
-                            [
-                                { $eq: ["$_id", ObjectId(req.params.id)] },
-                                { $eq: ["$userMembers.userId", ObjectId(req.body.userId)] }
-                            ]
-                    }
-                }
-            }
-        ]).exec(async (e, data) => {
-            if (e) {
-                res.status(500)
-                .json(error({
-                    requestId: req.id,
-                    code: 500,
-                    message: e.message
-                }));
-            }
-            else {
-                if (data.length === 0){
-                    res.status(404)
-                    .json(error({
-                        requestId: req.id,
-                        code: 404,
-                        message: `User ${req.params.id} doesn't exist`
-                    }));
-                } 
-                else{
-                    const ui = data.pop()
-                    Group.updateOne(
-                        { _id: ObjectId(req.params.id) },
-                        { $pull: { "userMembers": { "userId": ObjectId(ui.userMembers.userId) } } },
-                        async function (e, doc) {
-                            if (e) {
-                                console.log(e)
-                                res.status(500)
-                                .json(error({
-                                    requestId: req.id,
-                                    code: 500,
-                                    message: e.message
-                                }));
-                            }
-                            else{
-                                await getAllGroupInfo(req.params.id, false)
-                                .then((result) => {
-                                    res.status(200)
-                                    .json(success({
-                                        requestId: req.id,
-                                        data: result
-                                    }));
-                                })
-                                .catch(e => {console.log(e),res.status(400)
-                                    .json(error({
-                                        requestId: req.id,
-                                        code: 400,
-                                        message: e
-                                    }))});
-                            }
-                        }
-                    );
-                }
-            }
-        });
-    } catch (error) {
-        console.log(error);
-        if (error) {
-            res.status(500)
-                .json(error({
-                    requestId: req.id,
-                    code: 500,
-                    message: e.message
-                }));
-        }
-    }
 
+        const { userId } = req.body;
+
+        const unjoiningProcess = new Promise((resolve, reject) => {
+            if (!validator.isMongoId(userId)) {
+                return reject(`Missing or empty parameter UserId`);
+            }
+
+            Group.aggregate([
+                { $unwind: "$userMembers" },
+                { $match: { $expr: { $and: [{ $eq: ["$_id", ObjectId(req.params.id)] }, { $eq: ["$userMembers.userId", ObjectId(userId)] }] } } }
+            ]).exec(async (e, data) => {
+                if (e) return reject(e);
+                if (data.length === 0) return reject(`User ${userId} doesn't exist into the group`);
+
+                const ui = data.pop();
+                Group.updateOne(
+                    { _id: ObjectId(req.params.id) },
+                    { $pull: { "userMembers": { "userId": ObjectId(ui.userMembers.userId) } } },
+                    async function (e, group) {
+                        if (e) reject(e);
+                        resolve({ memberUnjoined: ui.userMembers });
+                    }
+                );
+            });
+        });
+
+        unjoiningProcess
+            .then(infoGroup => res.status(200).json(success({ requestId: req.id, data: infoGroup })))
+            .catch(e => res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` })));
+
+    } catch (e) {
+        res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
+    }
 })
 
 module.exports = app

@@ -3,7 +3,6 @@ const mongoose = require('mongoose')
 const UsersEventsAttendanceSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
         ref: 'users'
     },
     eventId: {

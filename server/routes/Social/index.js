@@ -8,7 +8,7 @@ const error = require('../../utils/helpers/response').error;
 const ObjectId = require('mongoose').Types.ObjectId;
 
 //2. Fetch the user's friends with status request = accepted
-app.get('/social/friends/:userId',/*validateAccess,*/ async (req, res) => {
+app.get('/social/friends/:userId',[validateAccess,verifyToken], async (req, res) => {
     try {
         //Get the parameters
         const { userId } = req.params;

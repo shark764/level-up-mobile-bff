@@ -62,11 +62,19 @@ async function getAllGroupInfo(inGroupId, inShowAllInfo) {
                                             ]
                                     }
                                 }
-                            }
+                            },
+                            {
+                                $project:
+                                {
+                                    profileImg: 1,
+                                    coverPhoto: 1
+                                }
+                            }                            
                         ],
                         as: "members"
                     },
                 },
+                { $unwind: {path: "$members", preserveNullAndEmptyArrays: true }},
                 {
                     $lookup:
                     {
@@ -91,7 +99,7 @@ async function getAllGroupInfo(inGroupId, inShowAllInfo) {
                             $push: "$post"
                         },
                         userMembers: {
-                            $push: "$userMembers"
+                            $push: "$members"
                         },
                         userAdmins: {
                             $push: "$userAdmins"

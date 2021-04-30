@@ -28,7 +28,28 @@ const GroupSchema = new mongoose.Schema({
         type: String
     },
 
-    userMembers: []
+    userMembers: [
+        {
+            userId: {
+                type: mongoose.Schema.Types.ObjectId,
+                required: true,
+                ref: "users"
+            },
+
+            isAdmin: {
+                type: Boolean
+            },
+
+            status: {
+                type: String,
+                default: 'pending'
+            },
+
+            dateAccepted: {
+                type: Date
+            }
+        }
+    ]
 })
 
 GroupSchema.statics.getTotalUserMembers = (inGroupId) => {

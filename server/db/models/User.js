@@ -71,6 +71,12 @@ const userSchema = new mongoose.Schema({
     active: {
         type: Boolean,
         required: true
+    },
+    profileImg:{
+        type: String
+    },
+    coverPhoto:{
+        type: String
     }
 })
 

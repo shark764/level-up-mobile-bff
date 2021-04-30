@@ -25,7 +25,8 @@ const UserFriendSchema = new mongoose.Schema({
     },
     
     statusRequest: {
-        type: String
+        type: String,
+        default: "pending"
     }    
 })
 

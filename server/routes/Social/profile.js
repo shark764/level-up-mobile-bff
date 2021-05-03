@@ -210,7 +210,7 @@ app.get('/social/profile/:userId', [validateAccess,verifyToken],async (req, res)
                     message: `No Profile found with ID ${reqUserId}`
                 }));
             } else {
-                user = result.pop()
+                const user = result.pop()
                 res.status(200)
                 .json(success({
                     requestId: req.id,

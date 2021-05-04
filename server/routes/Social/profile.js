@@ -15,11 +15,11 @@ app.get('/social/profile/:userId', [validateAccess,verifyToken],async (req, res)
         const { reqUserId } = req.body;
 
         if(!validator.isMongoId(reqUserId)){
-            return res.status(500)
+            return res.status(400)
             .json(error({
                 requestId: req.id,
-                code: 500,
-                message: `Missing or wron parameter requested user Id`
+                code: 400,
+                message: `Missing or wrong parameter requested user Id`
             }));
         }
 

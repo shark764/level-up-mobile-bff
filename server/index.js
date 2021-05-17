@@ -20,7 +20,7 @@ app.use(gameRouter)
 app.use(userAchievementsRouter)
 app.use(UserChallengeRouter)
 app.use(require('./routes/FacilityCheckIn'));
-app.use(require('./routes/MemberShips'));
+app.use(require('./routes/Memberships'));
 app.use(require('./routes/Goals'));
 app.use(require('./routes/Social'));
 app.use(require('./routes/Social/profile'));
@@ -33,7 +33,7 @@ app.use(require('./routes/Social/Invitations'));
 app.use(require('./routes/LeaderBoard'));
 //app.use(require('./routes/uploads'))
 app.use(require('./routes/UserManagement/avatar'))
-
+app.use(require('./routes/More/Settings'))
 
 
 

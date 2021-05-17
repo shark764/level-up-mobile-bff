@@ -3,7 +3,7 @@ const app = express();
 const Facility = require('../../db/models/Facility')
 const User = require('../../db/models/User')
 const UserFacility = require('../../db/models/User_Facility')
-const Membership = require('../../db/models/MemberShip')
+const Membership = require('../../db/models/Membership')
 const verifyPaymentPayload = require('../../utils/helpers/validatePaymentPayload')
 const {createMembership} = require('./helpers')
 const ObjectId = require('mongoose').Types.ObjectId;
@@ -28,8 +28,8 @@ app.post('/membership/free/:facilityId/:userId',[validateAccess,verifyToken],asy
             if(user){
                 // Validations..
                 // Verify if facility is free.
-                const freeMemberShip = await Facility.freeMembership(facilityId);
-                if(freeMemberShip){
+                const freeMembership = await Facility.freeMembership(facilityId);
+                if(freeMembership){
 
                     UserFacility.isAlreadyMember(userId,facilityId).then(async()=>{
                         const userFacility = new UserFacility({userId, facilityId});

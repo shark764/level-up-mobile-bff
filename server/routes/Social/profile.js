@@ -75,7 +75,7 @@ app.get('/social/profile/:userId', [validateAccess,verifyToken],async (req, res)
                                 from: "user_memberships",
                                 localField: "_id",
                                 foreignField: "userFacilityId",
-                                as: "userMemberShips"
+                                as: "userMemberships"
                             }
                         },
                         { $unwind: "$detailFacility" },
@@ -89,7 +89,7 @@ app.get('/social/profile/:userId', [validateAccess,verifyToken],async (req, res)
                                 facilityId: 1,
                                 description: "$detailFacility.description",
                                 name: "$detailFacility.name",
-                                dateMembership: { $first: "$userMemberShips.buyDate" }
+                                dateMembership: { $first: "$userMemberships.buyDate" }
                             }
                         }
                     ],

@@ -8,7 +8,7 @@ const validateAccess = require('../../middlewares/validateAccess')
 const verifyRequest = require('../../middlewares/verifyToken')
 const { success, error } = require('../../utils/helpers/response')
 const redisCheckIn = require('../../utils/redis/facility')
-// const Membership = require('../../db/models/MemberShip')
+// const Membership = require('../../db/models/Membership')
 const ObjectId = require('mongoose').Types.ObjectId;
 app.get('/facilities',[validateAccess,verifyRequest],async(req,res)=>{
     try{

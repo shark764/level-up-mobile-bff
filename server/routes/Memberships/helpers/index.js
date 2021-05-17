@@ -11,7 +11,7 @@ const createMembership = async({user,membership,payload})=>{
     const userFacility = new UserFacility({userId: user, facilityId: facility});
     let paymentMethod = await PaymentMethod.getIdByName(payload.Type);
     console.log("PaymentMethodId",paymentMethod);
-    const userMemberShip = new UserMembership({
+    const userMembership = new UserMembership({
         userFacilityId: userFacility,
         membershipId: membership,
         paymentMethodId: paymentMethod,
@@ -20,8 +20,8 @@ const createMembership = async({user,membership,payload})=>{
 
     })
     await userFacility.save();
-    await userMemberShip.save();
-    return userMemberShip;
+    await userMembership.save();
+    return userMembership;
 }
 
 

@@ -25,6 +25,11 @@ const UserFacilitySchema = new mongoose.Schema({
     dateUpdated:{
         type: Date,
         default: Date.now()
+    },
+
+    safetyVideo:{ 
+        type: Boolean,
+        default: false
     }
     // MISSING!!!
     // Missing ROLES, userCreated, userUpdated. ADMIN...

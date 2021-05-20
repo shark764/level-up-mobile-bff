@@ -91,7 +91,7 @@ app.get('/more/settings/memberships', [validateAccess, verifyToken], async (req,
 
 
 //2. Modify membership
-app.put('/more/settings/memberships/:membershipId', /*[validateAccess, verifyToken],*/ async (req, res) => {
+app.put('/more/settings/memberships/:membershipId', [validateAccess, verifyToken], async (req, res) => {
     try {
         const { membershipId } = req.params;
         const { userId, benefits, name, price, validPeriod } = req.body;

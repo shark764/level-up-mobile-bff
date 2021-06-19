@@ -1,5 +1,5 @@
 const Group = require('../../../db/models/Group');
-const ObjectId = require('mongoose').Types.ObjectId;
+const {ObjectId} = require('mongoose').Types;
 
 async function getAllGroupInfo(inGroupId, inShowAllInfo) {
 
@@ -184,10 +184,10 @@ async function getAllGroupInfo(inGroupId, inShowAllInfo) {
                     resolve(result);
                 }
             });
-        })
+        });
     }
 }
 
 module.exports = {
     getAllGroupInfo
-}
+};

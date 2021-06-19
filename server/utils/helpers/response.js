@@ -1,29 +1,27 @@
-const success = (args) => {
-    return {
+const success = (args) => ({
         status: 'success',
         requestId: args.requestId,
         data: args.data || {message: 'Operation was successful.'}
-    }
-}
+    });
 
 const error = (args) => {
     const {code} = args;
-    var message = args.message || 'Server Error';
+    let message = args.message || 'Server Error';
     switch(code){
         case 400:
             message ="LUL-MOB000 - Bad request check body/params";
         break;
 
         case 401:
-            message="LUL-MOB001 - Authentication required"
+            message="LUL-MOB001 - Authentication required";
         break;
 
         case 402:
-            message="LUL-MOB002 - Payment required"
+            message="LUL-MOB002 - Payment required";
         break;
 
         case 403:
-            message="LUL-MOB003 - Forbidden Action"
+            message="LUL-MOB003 - Forbidden Action";
         break;
 
         case 404:   
@@ -31,11 +29,11 @@ const error = (args) => {
         break;
 
         case 409:
-            message = "LUL-MOB009 - Account is already in use"
+            message = "LUL-MOB009 - Resource is already in use";
         break;
 
         case 422:
-            message="LUL-MOB022 - Request Failed For Model"
+            message="LUL-MOB022 - Request Failed For Model";
         break;        
     }
     return {
@@ -45,7 +43,7 @@ const error = (args) => {
             code: args.code,
             message: args.message || message,
         }
-    }
-}
+    };
+};
 
-module.exports = { success, error }
+module.exports = { success, error };

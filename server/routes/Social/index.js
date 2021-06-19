@@ -3,9 +3,9 @@ const app = express();
 const User = require('../../db/models/User');
 const validateAccess = require('../../middlewares/validateAccess');
 const verifyToken = require('../../middlewares/verifyToken');
-const success = require('../../utils/helpers/response').success;
-const error = require('../../utils/helpers/response').error;
-const ObjectId = require('mongoose').Types.ObjectId;
+const {success} = require('../../utils/helpers/response');
+const {error} = require('../../utils/helpers/response');
+const {ObjectId} = require('mongoose').Types;
 
 //2. Fetch the user's friends with status request = accepted
 app.get('/social/friends/:userId',[validateAccess,verifyToken], async (req, res) => {
@@ -91,9 +91,9 @@ app.get('/social/friends/:userId',[validateAccess,verifyToken], async (req, res)
                     data: friends
                 }));
             }
-        })
+        });
     } catch (e) {
-        console.log(e)
+        console.log(e);
         res.status(500)
         .json(error({
             requestId: req.id,
@@ -101,6 +101,6 @@ app.get('/social/friends/:userId',[validateAccess,verifyToken], async (req, res)
             message: e.message
         }));
     }
-})
+});
 
-module.exports = app
+module.exports = app;

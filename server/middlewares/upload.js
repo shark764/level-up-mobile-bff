@@ -1,10 +1,10 @@
 const multer  = require('multer');
 
-const allowedImages = new RegExp(process.env.ALLOWED_IMAGE_TYPES, 'g')
+const allowedImages = new RegExp(process.env.ALLOWED_IMAGE_TYPES, 'g');
 
 const storage = multer.memoryStorage({
     destination: (req,file,callback)=>{
-        callback(null,'')
+        callback(null,'');
     }
 });
 
@@ -15,12 +15,12 @@ const upload = multer({
     },
     fileFilter(req, file, cb) {        
         if(!file.originalname.match(allowedImages)) {
-            return cb(new Error('Invalid file extension'))
+            return cb(new Error('Invalid file extension'));
         } 
-        cb(undefined, true)
+        cb(undefined, true);
     }
 }).single('image');
 
 module.exports = {
     upload
-}
+};

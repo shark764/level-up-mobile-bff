@@ -1,7 +1,7 @@
-const express = require('express')
+const express = require('express');
 const app = express();
-const User = require('../../db/models/User')
-const {error,success} = require('../../utils/helpers/response')
+const User = require('../../db/models/User');
+const {error,success} = require('../../utils/helpers/response');
 
 
 app.get('/userprogress/:userId',async(req,res)=>{
@@ -14,16 +14,16 @@ app.get('/userprogress/:userId',async(req,res)=>{
         // });
 
      User.getGlobalRank(req.params.userId).then(result=>{
-         res.json(success({requestId: req.id, data:{result}}))
+         res.json(success({requestId: req.id, data:{result}}));
      }).catch(e=>{
-         res.status(500).json({requestId: req.id, code: 500, message:e})
-     })
+         res.status(500).json({requestId: req.id, code: 500, message:e});
+     });
         
    
        
     }catch(err){
-        res.status(500).json(error({requestId: req.id, code:500, message: err}))
+        res.status(500).json(error({requestId: req.id, code:500, message: err}));
     }
-})
+});
 
-module.exports = app
+module.exports = app;

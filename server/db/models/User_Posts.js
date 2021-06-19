@@ -1,4 +1,4 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
 const userPostsSchema = new mongoose.Schema({
     userId: {
@@ -32,7 +32,7 @@ const userPostsSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-})
+});
 
 // userPostsSchema.static.newPost = async (post) => {
 //     const newPost = new UserPosts({
@@ -44,6 +44,6 @@ const userPostsSchema = new mongoose.Schema({
 
 // }
 
-const UserPosts = mongoose.model('user_posts', userPostsSchema)
+const UserPosts = mongoose.model('user_posts', userPostsSchema);
 
-module.exports = UserPosts
+module.exports = UserPosts;

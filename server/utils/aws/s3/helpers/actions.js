@@ -7,17 +7,15 @@
 */
 const actions = (id,filetype,Body)=>{
 
-const uploadAvatar = ()=>{
-    return{
+const uploadAvatar = ()=>({
         Bucket: process.env.AWS_BUCKET_NAME,
         Key: `avatars/${id}.${filetype}`,
         Body
-    }
-}
+    });
 
     return{
         uploadAvatar,
-    }
-}
+    };
+};
 
-module.exports = actions
+module.exports = actions;

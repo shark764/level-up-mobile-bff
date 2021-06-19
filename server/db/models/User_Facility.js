@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const ObjectId = mongoose.Types.ObjectId;
+const {ObjectId} = mongoose.Types;
 const UserFacilitySchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -34,11 +34,10 @@ const UserFacilitySchema = new mongoose.Schema({
     // MISSING!!!
     // Missing ROLES, userCreated, userUpdated. ADMIN...
 
-})
+});
 
 
-UserFacilitySchema.statics.isAlreadyMember = async(userId, facilityId) => {
-    return new Promise((resolve, reject) => {
+UserFacilitySchema.statics.isAlreadyMember = async(userId, facilityId) => new Promise((resolve, reject) => {
         UserFacility.aggregate([
             { "$match":
                 { "$and": [
@@ -55,20 +54,19 @@ UserFacilitySchema.statics.isAlreadyMember = async(userId, facilityId) => {
             } else {
                 resolve(true);
             }
-        })
-    })
-}
+        });
+    });
 
 UserFacilitySchema.statics.getUserFacility = async(userId, facilityId) => {
         try {
             return UserFacility.findOne({
                 'facilityId': ObjectId(facilityId),
                 'userId': ObjectId(userId)
-            })
+            });
         } catch (err) {
             return null;
         }
-    }
+    };
 
-const UserFacility = mongoose.model('user_facilities', UserFacilitySchema)
-module.exports = UserFacility
+const UserFacility = mongoose.model('user_facilities', UserFacilitySchema);
+module.exports = UserFacility;

@@ -12,6 +12,6 @@ const UserMatchSchema = new mongoose.Schema({
     gameId: {
         type: mongoose.Schema.Types.ObjectId
     },
-})
+});
 
 module.exports = mongoose.model('user_match', UserMatchSchema);

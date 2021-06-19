@@ -1,4 +1,4 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
 const UsersEventsAttendanceSchema = new mongoose.Schema({
     userId: {
@@ -24,8 +24,8 @@ const UsersEventsAttendanceSchema = new mongoose.Schema({
     dateAccepted: {
         type: Date        
     }
-})
+});
 
-const Users_Events_Attendance = mongoose.model('users_events_attendance', UsersEventsAttendanceSchema)
+const Users_Events_Attendance = mongoose.model('users_events_attendance', UsersEventsAttendanceSchema);
 
-module.exports = Users_Events_Attendance
+module.exports = Users_Events_Attendance;

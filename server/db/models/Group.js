@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const ObjectId = require('mongoose').Types.ObjectId;
+const {ObjectId} = require('mongoose').Types;
 
 const GroupSchema = new mongoose.Schema({
     userId:{
@@ -50,11 +50,9 @@ const GroupSchema = new mongoose.Schema({
             }
         }
     ]
-})
+});
 
-GroupSchema.statics.getTotalUserMembers = (inGroupId) => {
-
-    return new Promise((resolve,reject)=>{
+GroupSchema.statics.getTotalUserMembers = (inGroupId) => new Promise((resolve,reject)=>{
         Group.aggregate([
             { $unwind: "$userMembers"},
             { 
@@ -79,7 +77,6 @@ GroupSchema.statics.getTotalUserMembers = (inGroupId) => {
             }
         });
     });
-}
 
 const Group = mongoose.model('group',GroupSchema);
 module.exports = Group;

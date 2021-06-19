@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const ObjectId = mongoose.Types.ObjectId;
+const { ObjectId } = mongoose.Types;
 
 const gameSchema = new mongoose.Schema({
     name: {
@@ -9,10 +9,10 @@ const gameSchema = new mongoose.Schema({
 
     leagueId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'leagues' 
+        ref: 'leagues'
     },
 
-    facilityId:{
+    facilityId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'facilities',
     },
@@ -53,38 +53,46 @@ const gameSchema = new mongoose.Schema({
         type: Boolean,
         required: true,
     }
+});
 
-})
 
-gameSchema.statics.newGame = async function (data, loggedUser) {        
-    return new Promise(async (resolve, reject) => {
-        const name = data.name
-        const game = await Game.findOne({ name })
-    
-        if (game) {
-          return reject('Game name already in used')
-        }
-        try {
-            const gameToCreate = new Game ({
-                name: data.name,
-                facilityId: ObjectId(data.facilityId),
-                leagueId: ObjectId(data.leagueId),
-                from: new Date(data.from),
-                to: new Date(data.to),
-                userCreated: loggedUser,
-                userUpdated: loggedUser,
-                active: true
+gameSchema.statics.newGame = function (data, loggedUser) {
+
+    return new Promise((resolve, reject) => {
+
+        const { name } = data;
+        const game = Game.findOne({ name });
+
+        game
+            .then(result => {
+                
+                if (result) {
+                    return reject({ statusCode: 409 });
+                }
+
+                try {
+                    const gameToCreate = new Game({
+                        name: data.name,
+                        facilityId: ObjectId(data.facilityId),
+                        leagueId: ObjectId(data.leagueId),
+                        from: new Date(data.from),
+                        to: new Date(data.to),
+                        userCreated: loggedUser,
+                        userUpdated: loggedUser,
+                        active: true
+                    });
+
+                    resolve(gameToCreate.save(gameToCreate));
+
+                } catch {
+                    return reject({ statusCode: 500 });
+                }
             })
-            return resolve(
-                await gameToCreate.save(gameToCreate)
-            )
-        } catch (err) {
-            return reject(err.message)
-        }
-    })
-}
+            .catch(() => reject({ statusCode: 500 }));
+    });
+};
 
 
-const Game = mongoose.model('games', gameSchema)
+const Game = mongoose.model('games', gameSchema);
 
-module.exports = Game
+module.exports = Game;

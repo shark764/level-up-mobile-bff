@@ -1,4 +1,4 @@
-const mongoose =require('mongoose')
+const mongoose =require('mongoose');
 
 const PaymentMethodSchema = new mongoose.Schema({
     paymentMethod:{
@@ -7,14 +7,14 @@ const PaymentMethodSchema = new mongoose.Schema({
         unique: true,
         trim: true,
     }
-})
+});
 
 
 PaymentMethodSchema.statics.getIdByName = async(name)=>{
     const paymentMethod = await PaymentMethod.find({});
-    let method = paymentMethod.pop();
+    const method = paymentMethod.pop();
     return method ? method : false;
-}
+};
 
 const PaymentMethod = mongoose.model('payment_methods',PaymentMethodSchema);
 

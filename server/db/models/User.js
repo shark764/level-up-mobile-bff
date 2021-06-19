@@ -1,10 +1,10 @@
-const mongoose = require('mongoose')
-const UserFacility = require('./User_Facility')
-const Facility = require('../models/Facility')
-const UserMatch = require('./User_Match')
-const Group = require('../models/Group')
-const UserFriend = require('../models/User_Friend')
-const ObjectId = mongoose.Types.ObjectId
+const mongoose = require('mongoose');
+const UserFacility = require('./User_Facility');
+const Facility = require('../models/Facility');
+const UserMatch = require('./User_Match');
+const Group = require('../models/Group');
+const UserFriend = require('../models/User_Friend');
+const {ObjectId} = mongoose.Types;
 
 const userSchema = new mongoose.Schema({
     email: {
@@ -78,14 +78,14 @@ const userSchema = new mongoose.Schema({
     coverPhoto:{
         type: String
     }
-})
+});
 
 
 // Get a rank/score of a specific user/facility.
 userSchema.statics.getRankByFacility= async(userId, facilityId)=>{
     try{
-        let userFacilities = await UserFacility.find({facilityId}).distinct('_id');
-        let userFacility = await UserFacility.findOne({facilityId,userId})
+        const userFacilities = await UserFacility.find({facilityId}).distinct('_id');
+        const userFacility = await UserFacility.findOne({facilityId,userId});
         return new Promise((resolve,reject)=>{
             userFacility? 
             UserMatch.aggregate([
@@ -150,13 +150,13 @@ userSchema.statics.getRankByFacility= async(userId, facilityId)=>{
                 if(err) reject(err);
                 if(results.length === 0) reject("Check query based error");
                 resolve( results.pop());
-            }) : reject("No userFacilityFound please check params.")
-    })
+            }) : reject("No userFacilityFound please check params.");
+    });
 }catch(e){
-    throw new Error(e)
+    throw new Error(e);
 }
  
-}
+};
 
 userSchema.statics.leaderBoard = async()=>{
     try{
@@ -240,15 +240,15 @@ userSchema.statics.leaderBoard = async()=>{
                 },
                 
             ]).exec(async(err,results)=>{
-                if (err) reject(err)
+                if (err) reject(err);
                 // console.log("Results",results);
                 resolve(results);
-            })
-        })
+            });
+        });
     }catch(e){
-        throw new Error(e)
+        throw new Error(e);
     }
-}
+};
 
 // Get the global rank with score of user.
 userSchema.statics.getGlobalRank = async(userId)=>{
@@ -338,22 +338,22 @@ userSchema.statics.getGlobalRank = async(userId)=>{
                 }
                 
             ]).exec((err,results)=>{
-                if(err) reject(err)
-                if(results.length === 0) resolve({rank: null, _id: userId, score: 0})
+                if(err) reject(err);
+                if(results.length === 0) resolve({rank: null, _id: userId, score: 0});
                 resolve(results.pop());
-            })
-        })
+            });
+        });
         
     }catch(e){
-        throw new Error(e)   
+        throw new Error(e);   
     }
-}
+};
 
 // Get ranking with score in facilities of user.
 userSchema.statics.getRankingInFacilities = async(userId)=>{
     try{
         // Get facilities in which user is member.
-        let facilities = await UserFacility.find({userId}).distinct("facilityId");
+        const facilities = await UserFacility.find({userId}).distinct("facilityId");
         
         return new Promise((resolve,reject)=>{
             UserFacility.aggregate([
@@ -476,51 +476,51 @@ userSchema.statics.getRankingInFacilities = async(userId)=>{
                 console.log("results",results);
                 if(err) reject(err);
                 resolve(results);
-            })
+            });
             
-        })
+        });
     }catch(e){
-        throw new Error(e)
+        throw new Error(e);
     }
-}
+};
 
 // find user by credentials
 userSchema.statics.findByCredentials = async (email, password) => {
-    const user = await User.findOne({ email })
+    const user = await User.findOne({ email });
 
     if (!user) {
-        throw new Error('Unable to login')
+        throw new Error('Unable to login');
     }
 
-    const isMatch = await bcrypt.compare(password, user.password)
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-        throw new Error('Unable to login')
+        throw new Error('Unable to login');
     }
 
-    return user
-}
+    return user;
+};
 
 // find user by id
 userSchema.statics.getUserById = async (id) => {
     //const userId = mongoose.Types.ObjectId(id)
     const user =  User.findById(id, (err, user)=> {
         
-    })
+    });
     return user;
     
 
-}
+};
 
 // add avatar picture
 userSchema.statics.addAvatar = async (url, id) => {
-    const user = await User.findById(id)
+    const user = await User.findById(id);
     
     //user.userProfile.pop()
-    user.userProfile.photo = url
-    await user.save()
-    return user
-}
+    user.userProfile.photo = url;
+    await user.save();
+    return user;
+};
 
 userSchema.statics.findUserInGroups = async (inUserId) => {
 
@@ -593,9 +593,9 @@ userSchema.statics.findUserInGroups = async (inUserId) => {
             else {
                 resolve(result);
             }
-        })
-    })
-}
+        });
+    });
+};
 
 
 userSchema.statics.findUserNotInGroups = async (inUserId) => {
@@ -682,9 +682,9 @@ userSchema.statics.findUserNotInGroups = async (inUserId) => {
             else {
                 resolve(result);
             }
-        })
-    })
-}
+        });
+    });
+};
 
 userSchema.statics.myFriendsGroups = async (inUserId) => {
 
@@ -763,7 +763,7 @@ userSchema.statics.myFriendsGroups = async (inUserId) => {
                 reject(error);
             }
             if (groupList.length === 0) {
-                reject(`No data groups found for User ${inUserId}`)
+                reject(`No data groups found for User ${inUserId}`);
             }
             else {
                 const groupsUserNotIn = groupList.pop();
@@ -915,7 +915,7 @@ userSchema.statics.myFriendsGroups = async (inUserId) => {
                                 reject(error);
                             }
                             if (friendList.length === 0) {
-                                reject(`No data friends list found for User ${inUserId}`)
+                                reject(`No data friends list found for User ${inUserId}`);
                             }
                             else {
                                 const friendListValidate = friendList.pop();
@@ -970,7 +970,7 @@ userSchema.statics.myFriendsGroups = async (inUserId) => {
                                         reject(error);
                                     }
                                     if (result.length === 0) {
-                                        reject(`No data found for User ${inUserId}`)
+                                        reject(`No data found for User ${inUserId}`);
                                     }
                                     else {
                                         resolve(result);
@@ -983,7 +983,7 @@ userSchema.statics.myFriendsGroups = async (inUserId) => {
             }
         });
     });
-}
+};
 
 userSchema.statics.findUserInGroup = async (inGroupId, inUserId, inOption) => {
 
@@ -1021,7 +1021,7 @@ userSchema.statics.findUserInGroup = async (inGroupId, inUserId, inOption) => {
                     resolve(result);
                 }
                 else{
-                    reject(`No data found for User ${inUserId} and Group ${inGroupId}`)
+                    reject(`No data found for User ${inUserId} and Group ${inGroupId}`);
                 }
             }
             else {
@@ -1030,7 +1030,7 @@ userSchema.statics.findUserInGroup = async (inGroupId, inUserId, inOption) => {
             }
         });
     });
-}
+};
 
 userSchema.statics.userIsAdmin = (inGroupId, inUserId) => {
 
@@ -1071,7 +1071,7 @@ userSchema.statics.userIsAdmin = (inGroupId, inUserId) => {
             }
         });
     });
-}
+};
 
-const User = mongoose.model('users', userSchema)
-module.exports = User
+const User = mongoose.model('users', userSchema);
+module.exports = User;

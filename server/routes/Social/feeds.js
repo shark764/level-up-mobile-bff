@@ -1,16 +1,16 @@
-const express = require('express')
-const ObjectId = require('mongoose').Types.ObjectId
-const User = require('../../db/models/User')
-const User_Friends = require('../../db/models/User_Friend')
-const success = require('../../utils/helpers/response').success
-const error = require('../../utils/helpers/response').error
+const express = require('express');
+const {ObjectId} = require('mongoose').Types;
+const User = require('../../db/models/User');
+const User_Friends = require('../../db/models/User_Friend');
+const {success} = require('../../utils/helpers/response');
+const {error} = require('../../utils/helpers/response');
 const validateAccess = require('../../middlewares/validateAccess');
-const router = express.Router()
+const router = express.Router();
 
 // Get friend's and group's posts for the user
 // GET /social/feed/
 router.get('/social/feed/', validateAccess, async (req, res) => {
-    const user_friends = await User_Friends.find({ userId: req.user.data._id }).distinct('friendUserId')
+    const user_friends = await User_Friends.find({ userId: req.user.data._id }).distinct('friendUserId');
     try {
         const feed = await User.aggregate([
     
@@ -75,16 +75,16 @@ router.get('/social/feed/', validateAccess, async (req, res) => {
                     $group: { '_id': '$groupName', 'posts': { $push: '$post' } }
               }
         
-    ])
+    ]);
 
         return res
             .status(201)
-            .json(success({ requestId: req.id, data: feed }))
+            .json(success({ requestId: req.id, data: feed }));
     } catch (err) {
         return res
             .status(400)
-            .json(error({ requestId: req.id, code: 400, message: err }))
+            .json(error({ requestId: req.id, code: 400, message: err }));
     }
-})
+});
 
-module.exports = router
+module.exports = router;

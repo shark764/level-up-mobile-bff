@@ -1,6 +1,6 @@
-const mongoose = require('mongoose')
-const ObjectId = mongoose.Types.ObjectId
-const UserFacility = require('./User_Facility')
+const mongoose = require('mongoose');
+const {ObjectId} = mongoose.Types;
+const UserFacility = require('./User_Facility');
 
 const userChallengeSchema = new mongoose.Schema({
 
@@ -37,47 +37,47 @@ const userChallengeSchema = new mongoose.Schema({
         default: 'pending'
     },
 
-})
+});
 
 
 userChallengeSchema.statics.updateStatus = async function (userChallengeId, userId, data) {        
     return new Promise(async (resolve, reject) => {
         try {
-            const userFacility = await UserFacility.getUserFacility(userId, data.facilityId)
+            const userFacility = await UserFacility.getUserFacility(userId, data.facilityId);
             if (!userFacility) {
-                return reject('User not in facility')
+                return reject('User not in facility');
             }
             const userChallenge = await UserChallenge.findOne({
                 _id: ObjectId(userChallengeId),
                 challengeTo: userFacility._id
-            })
+            });
 
             if (!userChallenge) {
-                return reject('Invalid Challenge')
+                return reject('Invalid Challenge');
             }
 
             if (userChallenge.status === data.status) {
-                return reject('Challenge already has that status')
+                return reject('Challenge already has that status');
             }
 
-            userChallenge.status = data.status
-            userChallenge.statusUpdateDate = Date.now()
+            userChallenge.status = data.status;
+            userChallenge.statusUpdateDate = Date.now();
         
             return resolve(
                 await userChallenge.save()
-            )
+            );
         } catch (err) {
-            return reject(err.message)
+            return reject(err.message);
         }
-    })
-}
+    });
+};
 
 userChallengeSchema.statics.getReceivedChallenges = async function (userId, data) {        
     return new Promise(async (resolve, reject) => {
         try {
-            const userFacility = await UserFacility.getUserFacility(userId, data.facilityId)
+            const userFacility = await UserFacility.getUserFacility(userId, data.facilityId);
             if (!userFacility) {
-                return reject('User not in facility')
+                return reject('User not in facility');
             }
             UserChallenge.aggregate([
                 { $match : { 'challengeTo' : userFacility._id} },
@@ -116,21 +116,21 @@ userChallengeSchema.statics.getReceivedChallenges = async function (userId, data
                     'userFrom.lastName': 'user.lastName'                  
                 }}
 
-            ]).exec(function(err, userChallenges) {
+            ]).exec((err, userChallenges) => {
                 if (err) {
-                    reject(err)
+                    reject(err);
                 }
                 return resolve(
                     userChallenges
-                )
+                );
             });
 
 
         } catch (err) {
-            return reject(err.message)
+            return reject(err.message);
         }
-    })
-}
-const UserChallenge = mongoose.model('user_challenges', userChallengeSchema)
+    });
+};
+const UserChallenge = mongoose.model('user_challenges', userChallengeSchema);
 
-module.exports = UserChallenge
+module.exports = UserChallenge;

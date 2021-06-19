@@ -18,6 +18,6 @@ const goalSchema = new mongooose.Schema({
         type: String,
     },
 
-})
+});
 
 module.exports = mongooose.model('goal',goalSchema);

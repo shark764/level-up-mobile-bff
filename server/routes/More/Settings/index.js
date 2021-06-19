@@ -5,9 +5,9 @@ const User = require('../../../db/models/User');
 const Memberships = require('../../../db/models/Membership');
 const validateAccess = require('../../../middlewares/validateAccess');
 const verifyToken = require('../../../middlewares/verifyToken');
-const success = require('../../../utils/helpers/response').success;
-const error = require('../../../utils/helpers/response').error;
-const ObjectId = require('mongoose').Types.ObjectId;
+const {success} = require('../../../utils/helpers/response');
+const {error} = require('../../../utils/helpers/response');
+const {ObjectId} = require('mongoose').Types;
 const validator = require('validator');
 
 //1. Fetch the user's memberships
@@ -67,21 +67,21 @@ app.get('/more/settings/memberships', [validateAccess, verifyToken], async (req,
                             }
                         ]).exec((e, data) => {
                             if (e) {
-                                reject({ statusCode: 500 })
+                                reject({ statusCode: 500 });
                             }
 
                             resolve(data);
                         });
                     }
                     else {
-                        reject({ statusCode: 404 })
+                        reject({ statusCode: 404 });
                     }
                 })
-                .catch(e => { reject({ statusCode: 500 }) });
-        })
+                .catch(e => { reject({ statusCode: 500 }); });
+        });
 
         result
-            .then(data => res.status(200).json(success({ requestId: req.id, data: data })))
+            .then(data => res.status(200).json(success({ requestId: req.id, data })))
             .catch(e => res.status(e.statusCode).json(error({ requestId: req.id, code: e.statusCode })));
 
     } catch (e) {
@@ -125,25 +125,25 @@ app.put('/more/settings/memberships/:membershipId', [validateAccess, verifyToken
                                     }
                                 }
                                 else {
-                                    reject({ statusCode: 404 })
+                                    reject({ statusCode: 404 });
                                 }
                             })
-                            .catch(e => { reject({ statusCode: 500 }) });
+                            .catch(e => { reject({ statusCode: 500 }); });
                     }
                     else {
-                        reject({ statusCode: 404 })
+                        reject({ statusCode: 404 });
                     }
                 })
-                .catch(e => { reject({ statusCode: 500 }) });
+                .catch(e => { reject({ statusCode: 500 }); });
         });
 
         result
-            .then(data => res.status(200).json(success({ requestId: req.id, data: data })))
-            .catch(e => { res.status(e.statusCode).json(error({ requestId: req.id, code: e.statusCode })) });
+            .then(data => res.status(200).json(success({ requestId: req.id, data })))
+            .catch(e => { res.status(e.statusCode).json(error({ requestId: req.id, code: e.statusCode })); });
 
     } catch (e) {
         res.status(500).json(error({ requestId: req.id, code: 500, message: e.message ? e.message : e }));
     }
 });
 
-module.exports = app
+module.exports = app;

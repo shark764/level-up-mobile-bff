@@ -4,10 +4,10 @@ const User = require('../../../db/models/User');
 const Group = require('../../../db/models/Group');
 const validateAccess = require('../../../middlewares/validateAccess');
 const verifyToken = require('../../../middlewares/verifyToken');
-const ObjectId = require('mongoose').Types.ObjectId;
+const {ObjectId} = require('mongoose').Types;
 const { getAllGroupInfo } = require('../Helper');
-const success = require('../../../utils/helpers/response').success;
-const error = require('../../../utils/helpers/response').error;
+const {success} = require('../../../utils/helpers/response');
+const {error} = require('../../../utils/helpers/response');
 const validator = require('validator');
 
 //3. Groups that the current user does/doesn't belong
@@ -69,7 +69,7 @@ app.get('/social/friends/groups/:userId', [validateAccess, verifyToken], async (
         //Fetch the groups in which the user not in
         await User.myFriendsGroups(userId)
             .then(friendsGroups => res.status(200).json(success({ requestId: req.id, data: friendsGroups })))
-            .catch(e => res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` })))
+            .catch(e => res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` })));
     } catch (e) {
         res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
     }
@@ -106,9 +106,7 @@ app.get('/social/group/:groupId', [validateAccess, verifyToken], async (req, res
                                 showAllInfo = true;
                             }
                             else {
-                                const member = result.userMembers.filter(item => {
-                                    return (item.userId.toString() === userId && item.status === "accepted")
-                                });
+                                const member = result.userMembers.filter(item => (item.userId.toString() === userId && item.status === "accepted"));
 
                                 if (member.length !== 0) {
                                     getMember = member.pop();
@@ -137,7 +135,7 @@ app.get('/social/group/:groupId', [validateAccess, verifyToken], async (req, res
     } catch (e) {
         res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
     }
-})
+});
 
 
 //6. Edit the group
@@ -170,14 +168,12 @@ app.put('/social/group/:groupId', [validateAccess, verifyToken], async (req, res
                                     if (e) 
                                         return reject(e);
                                     if (result.length === 0) {
-                                        newAdmins = administrators.map((item) => {
-                                            return {
+                                        newAdmins = administrators.map((item) => ({
                                                 "userId": ObjectId(item),
                                                 "isAdmin": true,
                                                 "status": "accepted",
                                                 "dateAccepted": Date.now()
-                                            }
-                                        });
+                                            }));
 
                                         getGroup.groupName = groupName;
                                         getGroup.description = description;
@@ -196,11 +192,11 @@ app.put('/social/group/:groupId', [validateAccess, verifyToken], async (req, res
                             .catch(e => reject(e));
                     }
                     else {
-                        reject(`Group with Id ${groupId} doesn't exist`)
+                        reject(`Group with Id ${groupId} doesn't exist`);
                     }
                 })
                 .catch(e => reject(e));
-        })
+        });
 
         editResult
             .then(infoGroup => res.status(200).json(success({ requestId: req.id, data: infoGroup })))
@@ -208,7 +204,7 @@ app.put('/social/group/:groupId', [validateAccess, verifyToken], async (req, res
     } catch (e) {
         res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
     }
-})
+});
 
 
 //7. Create a new group
@@ -227,7 +223,7 @@ app.post('/social/new/group', [validateAccess, verifyToken],async (req, res) => 
             userExist
                 .then(result => {
                     if (result) {
-                        const nameExist = Group.findOne({ groupName: groupName });
+                        const nameExist = Group.findOne({ groupName });
                         nameExist
                             .then(result => {
                                 if (result) {
@@ -236,11 +232,11 @@ app.post('/social/new/group', [validateAccess, verifyToken],async (req, res) => 
 
                                 group = new Group({
                                     userId: ObjectId(req.body.userId),
-                                    groupName: groupName,
-                                    description: description,
-                                    coverPhoto: coverPhoto,
-                                    privacySettings: privacySettings,
-                                    status: status
+                                    groupName,
+                                    description,
+                                    coverPhoto,
+                                    privacySettings,
+                                    status
                                 });
 
                                 resolve(group.save());
@@ -248,10 +244,10 @@ app.post('/social/new/group', [validateAccess, verifyToken],async (req, res) => 
                             .catch(e => reject(e));
                     }
                     else {
-                        reject(`User ${userId} doesn't exist`)
+                        reject(`User ${userId} doesn't exist`);
                     }
                 })
-                .catch(e => reject(e))
+                .catch(e => reject(e));
         });
 
         groupProcess
@@ -261,7 +257,7 @@ app.post('/social/new/group', [validateAccess, verifyToken],async (req, res) => 
     } catch (e) {
         res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
     }
-})
+});
 
 //8. Join to group if the group is public
 app.post('/social/group/join/:id', [validateAccess, verifyToken], async (req, res) => {
@@ -282,14 +278,12 @@ app.post('/social/group/join/:id', [validateAccess, verifyToken], async (req, re
                         groupExist
                             .then(result => {
                                 if (result) {
-                                    const member = result.userMembers.filter(item => {
-                                        return (item.userId.toString() === userId && item.status !== "rejected")
-                                    });
+                                    const member = result.userMembers.filter(item => (item.userId.toString() === userId && item.status !== "rejected"));
 
                                     if (member.length === 0) {
                                         tempAccepted = "pending";
                                         if (result.privacySettings === "public") {
-                                            tempAccepted = "accepted"
+                                            tempAccepted = "accepted";
                                         }
 
                                         const newMember = {
@@ -297,7 +291,7 @@ app.post('/social/group/join/:id', [validateAccess, verifyToken], async (req, re
                                             "isAdmin": false,
                                             "status": tempAccepted,
                                             "dateAccepted": Date.now()
-                                        }
+                                        };
 
                                         result.userMembers.push(newMember);
                                         resolve(result.save());
@@ -326,7 +320,7 @@ app.post('/social/group/join/:id', [validateAccess, verifyToken], async (req, re
     } catch (e) {
         res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
     }
-})
+});
 
 //9. Unjoin an user from an specific group
 app.delete('/social/group/unjoin/:id', [validateAccess,verifyToken], async (req, res) => {
@@ -350,7 +344,7 @@ app.delete('/social/group/unjoin/:id', [validateAccess,verifyToken], async (req,
                 Group.updateOne(
                     { _id: ObjectId(req.params.id) },
                     { $pull: { "userMembers": { "userId": ObjectId(ui.userMembers.userId) } } },
-                    async function (e, group) {
+                    async (e, group) => {
                         if (e) reject(e);
                         resolve({ memberUnjoined: ui.userMembers });
                     }
@@ -365,6 +359,6 @@ app.delete('/social/group/unjoin/:id', [validateAccess,verifyToken], async (req,
     } catch (e) {
         res.status(500).json(error({ requestId: req.id, code: 500, message: `Error: ${e} ${e.message ? `Detail: ${e.message}` : ""}` }));
     }
-})
+});
 
-module.exports = app
+module.exports = app;

@@ -34,9 +34,9 @@ const EventsSchema = new mongoose.Schema({
     coverImageUrl: {
         type: String
     }
-})
+});
 
 
-const Events = mongoose.model('events', EventsSchema)
+const Events = mongoose.model('events', EventsSchema);
 
-module.exports = Events
+module.exports = Events;

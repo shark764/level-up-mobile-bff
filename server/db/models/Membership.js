@@ -24,6 +24,6 @@ const membershipSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'facilities'
     }
-})
+});
 
 module.exports = mongoose.model('memberships',membershipSchema); 

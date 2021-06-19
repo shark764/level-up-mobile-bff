@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const ObjectId = require('mongoose').Types.ObjectId;
+const {ObjectId} = require('mongoose').Types;
 
 const CheckinSchema = new mongoose.Schema({
     facilityId: {
@@ -28,32 +28,28 @@ const CheckinSchema = new mongoose.Schema({
     ]
 });
 
-CheckinSchema.statics.setCheckInUser = (inFacilityId, inUserId) => {
+CheckinSchema.statics.setCheckInUser = (inFacilityId, inUserId) => new Promise(async(resolve,reject)=>{
 
-    return new Promise(async(resolve,reject)=>{
+        const existFirstCheckin = await CheckIn.findOne({ facilityId: inFacilityId, dateCheckIn: {$gt: new Date(new Date().setHours(0,0,0,0))} });
 
-        existFirstCheckin = await CheckIn.findOne({ facilityId: inFacilityId, dateCheckIn: {$gt: new Date(new Date().setHours(0,0,0,0))} });
-
+        let checkinObject;
         if (existFirstCheckin) {
             checkinObject = existFirstCheckin;
-            checkinObject.users.push({userId: ObjectId(inUserId)})
         }
         else {
             checkinObject = new CheckIn({
                 facilityId: inFacilityId,
             });
-            checkinObject.users.push({userId: ObjectId(inUserId)})
         }
+        checkinObject.users.push({userId: ObjectId(inUserId)});
 
-        try{
-            await checkinObject.save();
-            return resolve(`Check in for user ${inUserId} in Facility ${inFacilityId} was added successfully`);
+        try{            
+            return resolve(await checkinObject.save());
         }
-        catch(e){
-            return reject(e.message);
+        catch{
+            return reject({statusCode: 500});
         }        
     });
-}
 
 const CheckIn = mongoose.model('checkin', CheckinSchema);
 module.exports = CheckIn;

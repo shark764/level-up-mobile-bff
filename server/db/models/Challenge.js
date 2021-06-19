@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const ObjectId = mongoose.Types.ObjectId;
 
 const challengeSchema = new mongoose.Schema({
     name: {
@@ -44,10 +43,10 @@ const challengeSchema = new mongoose.Schema({
         type: Number,
         required: true,
     }
-})
+});
 
 
 
-const Challenge = mongoose.model('challenges', challengeSchema)
+const Challenge = mongoose.model('challenges', challengeSchema);
 
-module.exports = Challenge
+module.exports = Challenge;

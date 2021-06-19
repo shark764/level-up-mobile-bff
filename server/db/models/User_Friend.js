@@ -28,7 +28,7 @@ const UserFriendSchema = new mongoose.Schema({
         type: String,
         default: "pending"
     }    
-})
+});
 
 const UserFriend = mongoose.model('user_friend',UserFriendSchema);
 module.exports = UserFriend;

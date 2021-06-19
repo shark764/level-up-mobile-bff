@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const ObjectId = mongoose.Types.ObjectId;
+const {ObjectId} = mongoose.Types;
 
 const facilitySchema = new mongoose.Schema({
     name:{
@@ -58,7 +58,7 @@ const facilitySchema = new mongoose.Schema({
     amenities:[
         {type: String}
     ]  
-})
+});
 
 
 facilitySchema.statics.freeMembership  = async (id)=>{
@@ -90,12 +90,12 @@ facilitySchema.statics.freeMembership  = async (id)=>{
                 "memberships": 1
             }
         }
-    ])
+    ]);
 // console.log("Memberships",memberships)
-let membership = memberships.pop();
+const membership = memberships.pop();
 // If our array is empty it means it has no memberships meaning its free
-return  membership.memberships.length === 0 ?  true : false
-}
+return  membership.memberships.length === 0 ?  true : false;
+};
 
 
 const Facility = mongoose.model('facilities',facilitySchema);

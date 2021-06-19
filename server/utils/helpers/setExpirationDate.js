@@ -1,8 +1,8 @@
 const setExpirationDate = (months)=>{
-    let now = new Date();
+    const now = new Date();
     now.setMonth(now.getMonth() + months);
     return now;
-}
+};
 
 
-module.exports = setExpirationDate
+module.exports = setExpirationDate;

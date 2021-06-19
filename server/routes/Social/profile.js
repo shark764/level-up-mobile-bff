@@ -3,9 +3,9 @@ const app = express();
 const User = require('../../db/models/User');
 const validateAccess = require('../../middlewares/validateAccess');
 const verifyToken = require('../../middlewares/verifyToken');
-const success = require('../../utils/helpers/response').success;
-const error = require('../../utils/helpers/response').error;
-const ObjectId = require('mongoose').Types.ObjectId;
+const {success} = require('../../utils/helpers/response');
+const {error} = require('../../utils/helpers/response');
+const {ObjectId} = require('mongoose').Types;
 const validator = require('validator');
 
 //1. Fetch the user's profile
@@ -210,14 +210,14 @@ app.get('/social/profile/:userId', [validateAccess,verifyToken],async (req, res)
                     message: `No Profile found with ID ${reqUserId}`
                 }));
             } else {
-                const user = result.pop()
+                const user = result.pop();
                 res.status(200)
                 .json(success({
                     requestId: req.id,
                     data: user
                 }));
             }
-        })
+        });
     } catch (e) {
         console.log(e);
         res.status(500)
@@ -227,6 +227,6 @@ app.get('/social/profile/:userId', [validateAccess,verifyToken],async (req, res)
             message: e.message
         }));
     }
-})
+});
 
-module.exports = app
+module.exports = app;

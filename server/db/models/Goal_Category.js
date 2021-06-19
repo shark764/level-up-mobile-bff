@@ -9,6 +9,6 @@ const goalCategorySchema = new mongoose.Schema({
         type: String,
     },
 
-})
+});
 
 module.exports = mongoose.model('goal_category',goalCategorySchema);

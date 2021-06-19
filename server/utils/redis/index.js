@@ -1,15 +1,13 @@
-const Redis = require('ioredis')
-const {promisify} = require('util')
-
-const client = new Redis({
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT
-})
+const client = require('./connection');
+const {promisify} = require('util');
 
 const GET_ASYNC = promisify(client.hset).bind(client);
 const SET_ASYNC = promisify(client.hgetall).bind(client);
 
+const getRefreshTokenValue = (token, callback) => client.get(token, callback);
+
 module.exports = {
     GET_ASYNC,
-    SET_ASYNC
-}
+    SET_ASYNC,
+    getRefreshTokenValue
+};

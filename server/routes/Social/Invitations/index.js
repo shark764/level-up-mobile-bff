@@ -7,9 +7,9 @@ const UserEventAttendace = require('../../../db/models/User_Event_Attendance');
 const Group = require('../../../db/models/Group');
 const validateAccess = require('../../../middlewares/validateAccess');
 const verifyToken = require('../../../middlewares/verifyToken');
-const success = require('../../../utils/helpers/response').success;
-const error = require('../../../utils/helpers/response').error;
-const ObjectId = require('mongoose').Types.ObjectId;
+const {success} = require('../../../utils/helpers/response');
+const {error} = require('../../../utils/helpers/response');
+const {ObjectId} = require('mongoose').Types;
 const validator = require('validator');
 
 
@@ -31,7 +31,7 @@ app.get('/social/invitations/profile',[validateAccess,verifyToken], async (req, 
                 , "lastName": userInfo.lastName
                 , "profileImg": userInfo.profileImg
                 , "coverPhoto": userInfo.coverPhoto
-            }
+            };
 
             UserFriend.aggregate([{ $match: { $expr: { $eq: ["$userId", ObjectId(userId)] } } }
             ]).exec((e, invitations) => {
@@ -42,7 +42,7 @@ app.get('/social/invitations/profile',[validateAccess,verifyToken], async (req, 
                     res.status(404).json(error({ requestId: req.id, code: 404, message: `No invitations found for UserId ${req.body.userId}` }));
                 }
                 else {
-                    res.status(200).json(success({ requestId: req.id, data: { sender, invitations } }))
+                    res.status(200).json(success({ requestId: req.id, data: { sender, invitations } }));
                 }
             });
         }
@@ -135,7 +135,7 @@ app.post('/social/new/invitation/profile', async (req, res) => {
                     profileInvitation.save();
                     res.status(200).json(success({ requestId: req.id, data: {sender, receiver,profileInvitation} }));
                 })
-                .catch(e => { res.status(500).json(error({ requestId: req.id, code: 500, message: e })) });
+                .catch(e => { res.status(500).json(error({ requestId: req.id, code: 500, message: e })); });
         }
         else {
             res.status(404).json(error({ requestId: req.id, code: 404, message: `Information not found with Sender: ${senderId} and Receiver: ${receiverId}` }));
@@ -164,7 +164,7 @@ app.put('/social/invitations/profile/:id',[validateAccess, verifyToken], async (
                 if (userIdExist) {
                     invitation.statusRequest = response ? "accepted" : "rejected";
                     invitation.acceptedDate = response ? Date.now() : null;
-                    invitation.rejectedDate = response ? null : Date.now()
+                    invitation.rejectedDate = response ? null : Date.now();
 
                     await invitation.save();
                     res.status(200).json(success({ requestId: req.id, data: invitation }));
@@ -377,7 +377,7 @@ app.get('/social/invitations/group', [validateAccess, verifyToken], async (req, 
             }
             else {
                 info = result.pop();
-                res.status(200).json(success({ requestId: req.id, data: info }))
+                res.status(200).json(success({ requestId: req.id, data: info }));
             }
         });
     } catch (e) {
@@ -385,4 +385,4 @@ app.get('/social/invitations/group', [validateAccess, verifyToken], async (req, 
     }
 });
 
-module.exports = app
+module.exports = app;

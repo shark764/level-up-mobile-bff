@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
-const ObjectId = mongoose.Types.ObjectId;
-const Achievement = require('./Achievement')
-const UserFacility = require('./User_Facility')
+const {ObjectId} = mongoose.Types;
+const Achievement = require('./Achievement');
+const UserFacility = require('./User_Facility');
 
 const userAchievementsSchema = new mongoose.Schema({
     achievementId: {
@@ -28,84 +28,84 @@ const userAchievementsSchema = new mongoose.Schema({
     claimDate: {
         type: Date
     }
-})
+});
 
 userAchievementsSchema.statics.newUserAchievement = async function (data, userId) {        
     return new Promise(async (resolve, reject) => {
-        const achievementId = data.achievementId
+        const {achievementId} = data;
         try {
-            const userFacility = await UserFacility.getUserFacility(userId, data.facilityId)
+            const userFacility = await UserFacility.getUserFacility(userId, data.facilityId);
             if (!userFacility) {
-                return reject('User not in facility')
+                return reject('User not in facility');
             }
             const achievement = await Achievement.findOne({
                 _id: achievementId
-            })
+            });
             
             if (!achievement) {
-                return reject('Not a valid achievement')
+                return reject('Not a valid achievement');
             }
 
             const userAchievement = await UserAchievement.findOne({
-                achievementId: achievementId,
+                achievementId,
                 userFacilityId: userFacility._id 
-            })
+            });
 
             if (userAchievement) {
-                return reject('User already has that achievement')
+                return reject('User already has that achievement');
             }
             const userAchievementToCreate = new UserAchievement ({
                 achievementId: data.achievementId,
                 userFacilityId: userFacility._id,
                 achivedDate: Date.now()
-            })
+            });
     
             return resolve(
                 await userAchievementToCreate.save(userAchievementToCreate)
-            )
+            );
         } catch (err) {
-            return reject(err.message)
+            return reject(err.message);
         }
-    })
-}
+    });
+};
 
 userAchievementsSchema.statics.claim = async function (achievementId, userId, facilityId) {        
     return new Promise(async (resolve, reject) => {
         try {
-            const userFacility = await UserFacility.getUserFacility(userId, facilityId)
+            const userFacility = await UserFacility.getUserFacility(userId, facilityId);
             if (!userFacility) {
-                return reject('User not in facility')
+                return reject('User not in facility');
             }
             const userAchievement = await UserAchievement.findOne({
                 achievementId: ObjectId(achievementId),
                 userFacilityId: userFacility._id
-            })
+            });
 
             if (!userAchievement) {
-                return reject('User does not have that achievement')
+                return reject('User does not have that achievement');
             }
 
             if (userAchievement.claimed === true) {
-                return reject('Achievement already claimed by user')
+                return reject('Achievement already claimed by user');
             }
 
             userAchievement.claimed = true;
-            userAchievement.claimDate = Date.now()
+            userAchievement.claimDate = Date.now();
         
             return resolve(
                 await userAchievement.save()
-            )
+            );
         } catch (err) {
-            return reject(err.message)
+            return reject(err.message);
         }
-    })
-}
+    });
+};
 
 userAchievementsSchema.statics.getAllUserAchievements = async function (userId, facilityId) {   
     return new Promise(async (resolve, reject) => {
-        const userFacility = await UserFacility.getUserFacility(userId, facilityId)
+        const userFacility = await UserFacility.getUserFacility(userId, facilityId);
         if (!userFacility) {
-            return reject('User not in facility')
+            return reject('User not in facility');
         }
         UserAchievement.aggregate([
             { $match : { 'userFacilityId' : userFacility._id} },
@@ -127,17 +127,17 @@ userAchievementsSchema.statics.getAllUserAchievements = async function (userId, 
                 'claimDate': 1
             }},
             { $sort : { 'achivedDate' : 1 } }
-        ]).exec(function(err, userAchievements) {
+        ]).exec((err, userAchievements) => {
             if (err) {
-                reject(err)
+                reject(err);
             }
             return resolve(
                 userAchievements
-            )
+            );
         });
-    })
-}
+    });
+};
 
-const UserAchievement = mongoose.model('user_achievements', userAchievementsSchema)
+const UserAchievement = mongoose.model('user_achievements', userAchievementsSchema);
 
-module.exports = UserAchievement
+module.exports = UserAchievement;

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const ObjectId = mongoose.Types.ObjectId;
+const {ObjectId} = mongoose.Types;
 
 const leagueSchema = new mongoose.Schema({
     name: {
@@ -44,15 +44,15 @@ const leagueSchema = new mongoose.Schema({
         required: true,
     }
 
-})
+});
 
 leagueSchema.statics.newLeague = async function (data, loggedUser) {        
     return new Promise(async (resolve, reject) => {
-        const name = data.name
-        const league = await League.findOne({ name })
+        const {name} = data;
+        const league = await League.findOne({ name });
     
         if (league) {
-          return reject('League name already in used')
+          return reject('League name already in used');
         }
         const leagueToCreate = new League ({
             name: data.name,
@@ -61,19 +61,19 @@ leagueSchema.statics.newLeague = async function (data, loggedUser) {
             userCreated: loggedUser,
             userUpdated: loggedUser,
             active: true
-        })
+        });
     
         try {
             return resolve(
                 await leagueToCreate.save(leagueToCreate)
-            )
+            );
         } catch (err) {
-            return reject(err.message)
+            return reject(err.message);
         }
-    })
-}
+    });
+};
 
 
-const League = mongoose.model('leagues', leagueSchema)
+const League = mongoose.model('leagues', leagueSchema);
 
-module.exports = League
+module.exports = League;

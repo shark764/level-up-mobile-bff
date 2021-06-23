@@ -29,6 +29,8 @@ services:
 #   - docker info
 
 build:
+  only : 
+    - master
   stage: build
   script:
     - docker build -t $DOCKER_REGISTRY_URL/lul-registry/lul-mobile-bff -t $DOCKER_REGISTRY_URL/lul-registry/lul-mobile-bff:$CI_COMMIT_SHORT_SHA .
@@ -39,11 +41,13 @@ build:
 
 
 deploy_dev:
-    stage: deploy
-    image: devth/helm
-    script:
-        - export KUBECONFIG=$KUBECONFIG_file 
-        - git clone https://$GIT_USER:$GIT_TOKEN@gitlab.com/focus-ventures/lul-infra.git
-        - cd lul-infra/charts
-        - helm upgrade -i lul-mobile-bff lul-mobile-bff  -f lul-mobile-bff/environments/dev.yaml
+  only : 
+    - master
+  stage: deploy
+  image: devth/helm
+  script:
+      - export KUBECONFIG=$KUBECONFIG_file 
+      - git clone https://$GIT_USER:$GIT_TOKEN@gitlab.com/focus-ventures/lul-infra.git
+      - cd lul-infra/charts
+      - helm upgrade -i lul-mobile-bff lul-mobile-bff  -f lul-mobile-bff/environments/dev.yaml
 

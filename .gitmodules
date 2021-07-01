@@ -1,0 +1,3 @@
+[submodule "server/db/models/schemas"]
+	path = server/db/models/schemas
+	url = https://gitlab.com/focus-ventures/schemas

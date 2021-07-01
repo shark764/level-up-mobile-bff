@@ -17,7 +17,8 @@
     "prettify": "npm run format && npm run lint:fix",
     "release": "release-it patch --no-npm.publish",
     "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "updateModels": "git submodule update"
   },
   "husky": {
     "hooks": {

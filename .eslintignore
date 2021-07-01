@@ -3,3 +3,4 @@
 /dist/**
 /node_modules/**
 /public/**
+server/db/models/schemas

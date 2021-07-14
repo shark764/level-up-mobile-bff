@@ -68,5 +68,15 @@ UserFacilitySchema.statics.getUserFacility = async(userId, facilityId) => {
         }
     };
 
+UserFacilitySchema.statics.getAllUserFacility = async(userId) => {
+        try {
+            return UserFacility.find({
+                'userId': ObjectId(userId)
+            });
+        } catch (err) {
+            return null;
+        }
+    };
+
 const UserFacility = mongoose.model('user_facilities', UserFacilitySchema);
 module.exports = UserFacility;

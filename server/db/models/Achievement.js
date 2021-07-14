@@ -50,11 +50,11 @@ achievementSchema.statics.newAchievement = function (data) {
 
                 try {
                     return resolve(achievementToCreate.save(achievementToCreate));
-                } catch {
-                    return reject({ statusCode: 500 });
+                } catch(e) {
+                    return reject({ statusCode: 500, message: e.message });
                 }
             })
-            .catch(() => reject({ statusCode: 500 }));
+            .catch((e) => reject({ statusCode: 500, message: e.message }));
     });
 };
 

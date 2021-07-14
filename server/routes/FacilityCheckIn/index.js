@@ -5,11 +5,11 @@ const User = require('../../db/models/User');
 const CheckIn = require('../../db/models/CheckIn');
 const SafetyVideo = require('../../db/models/Safety_Video');
 const UserFacility = require('../../db/models/User_Facility');
-const validator = require('validator');
+const {ObjectId} = require('mongoose').Types;
 const { success, error } = require('../../utils/helpers/response');
 const redisCheckIn = require('../../utils/redis/facility');
-const {ObjectId} = require('mongoose').Types;
 const { validateSession, validateTokenAlive, validateExistenceAccessHeader } = require('../../middlewares');
+const validator = require('validator');
 
 
 //Get all facilities
@@ -21,11 +21,8 @@ app.get('/facilities',
     ],
     (req, res) => {
         try {
-            const userId = req.user_id;
-            if (!validator.isMongoId(userId)) {
-                return res.status(400).json(error({ requestId: req.id, code: 400 }));
-            }
 
+            const userId = req.user_id;
             const result = new Promise((resolve, reject) => {
 
                 const facilities = Facility.find({}, { "name": 1 });
@@ -65,28 +62,27 @@ app.get('/facilities',
                                                             "name": 1,
                                                             "description": 1,
                                                             "pictures": 1,
-                                                            // "distance": {
-                                                            //     "$round": ["$distance", 3]
-                                                            // }
-                                                            "distance": 1
+                                                             "distance": {
+                                                                 "$round": ["$distance", 3]
+                                                             }
                                                         }
                                                     },
                                                 ]).exec((e, nearFacilities) => {
                                                     if (e) {
-                                                        reject({ statusCode: 500 });
+                                                        reject({ statusCode: 500, message: e.message });
                                                     }
                                                     else {
                                                         resolve(nearFacilities);
                                                     }
                                                 });
-                                            } catch {
-                                                reject({ statusCode: 500 });
+                                            } catch(e) {
+                                                reject({ statusCode: 500, message: e.message });
                                             }
                                         } else {
                                             reject({ statusCode: 404 });
                                         }
                                     })
-                                    .catch(() => reject({ statusCode: 500 }));
+                                    .catch((e) => reject({ statusCode: 500, message: e.message }));
                             } else {
                                 reject({ statusCode: 400 });
                             }
@@ -94,15 +90,15 @@ app.get('/facilities',
                             resolve(data);
                         }
                     })
-                    .catch(() => reject({ statusCode: 500 }));
+                    .catch((e) => reject({ statusCode: 500, message: e.message }));
             });
 
             result
                 .then(data => res.json(success({ requestId: req.id, data })))
-                .catch(({ statusCode }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500 })));
+                .catch(({ statusCode, message }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500, message })));
 
         } catch (e) {
-            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message ? e.message : e }));
+            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message }));
         }
     });
 
@@ -113,42 +109,53 @@ app.get('/facilities/:facilityId',
         validateExistenceAccessHeader,
         validateSession,
         validateTokenAlive
-    ],
-    (req, res) => {
-        try {
+    ], 
+    async (req, res) => { 
+        try {            
             const { facilityId }  = req.params;
-            Facility.aggregate([
-                {
-                    "$match": { "_id": ObjectId(facilityId) }
-                },
-                {
-                    "$lookup": {
-                        "from": "memberships",
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "facilityId": ObjectId(facilityId)
-                                }
-                            },
-                            {
-                                "$project": {
-                                    "facilityId": 0,
-                                    "__v": 0
-                                }
-                            }
-                        ],
-                        "as": "memberships",
+
+            if (!validator.isMongoId(facilityId)) {
+                return res.status(400).json(error({ requestId: req.id, code: 400 }));
+            }
+
+            const facilityExist = await Facility.findById(facilityId);
+            if(facilityExist){
+                Facility.aggregate([
+                    {
+                        "$match": { "_id": ObjectId(facilityId) }
                     },
-                },
-            ]).exec((e, facility) => {
-                if (e) {
-                    res.status(500).json(error({ requestId: req.id, code: 500 }));
-                } else {
-                    res.json(success({ requestId: req.id, data: facility }));
-                }
-            });
+                    {
+                        "$lookup": {
+                            "from": "memberships",
+                            "pipeline": [
+                                {
+                                    "$match": {
+                                        "facilityId": ObjectId(facilityId)
+                                    }
+                                },
+                                {
+                                    "$project": {
+                                        "facilityId": 0,
+                                        "__v": 0
+                                    }
+                                }
+                            ],
+                            "as": "memberships",
+                        },
+                    },
+                ]).exec((e, facility) => {
+                    if (e) {
+                        res.status(500).json(error({ requestId: req.id, code: 500, message: e.message }));
+                    } else {
+                        res.json(success({ requestId: req.id, data: facility }));
+                    }
+                });
+            }
+            else{
+                res.status(404).json(error({ requestId: req.id, code: 404 }));
+            }
         } catch (e) {
-            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message ? e.message : e }));
+            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message })); 
         }
     });
 
@@ -165,14 +172,13 @@ app.put('/facilities/:facilityId/checkin',
             const userId = req.user_id;
             const { facilityId } = req.params;
 
-            if (!validator.isMongoId(userId)) {
+            if (!validator.isMongoId(facilityId)) {
                 return res.status(400).json(error({ requestId: req.id, code: 400 }));
             }
 
             const result = new Promise((resolve, reject) => {
 
                 const facilityExist = Facility.findById(facilityId); //facility exist
-
                 facilityExist
                     .then(data => {
                         if (data) {
@@ -189,28 +195,28 @@ app.put('/facilities/:facilityId/checkin',
                                         redisCheckIn().setCheckIn(userId, JSON.stringify(infoCheckIn), () => {
                                             CheckIn.setCheckInUser(facilityId, userId)
                                                 .then(result => resolve(result))
-                                                .catch(() => reject({ statusCode: 500 }));
+                                                .catch(({statusCode, message}) => reject({ statusCode, message }));
                                         });
                                     }
                                     else {
                                         reject({ statusCode: 404 });
                                     }
                                 })
-                                .catch(() => reject({ statusCode: 500 }));
+                                .catch((e) => reject({ statusCode: 500, message: e.message }));
                         }
                         else {
                             reject({ statusCode: 404 });
                         }
                     })
-                    .catch(() => reject({ statusCode: 500 }));
+                    .catch((e) => reject({ statusCode: 500, message: e.message }));
             });
 
             result
                 .then(data => res.json(success({ requestId: req.id, data })))
-                .catch(({ statusCode }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500 })));
+                .catch(({ statusCode, message }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500, message })));
 
         } catch (e) {
-            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message ? e.message : e }));
+            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message }));
         }
     });
 
@@ -232,38 +238,48 @@ app.get('/facilities/:facilityId/checkin',
             const { inDate } = req.body;
             const { facilityId } = req.params;
 
-            if (q) {
-                if (q === 'true') {
-                    showAll = true;
-                }
-                else if (q === 'false') {
-                    if (inDate && !Number(inDate)) {
+            if (!validator.isMongoId(facilityId)) {
+                return res.status(400).json(error({ requestId: req.id, code: 400 }));
+            }
+                        
+            const facilityExist = await Facility.findById(facilityId);
+            if(facilityExist){
+                if (q) {
+                    if (q === 'true') {
+                        showAll = true;
+                    }
+                    else if (q === 'false') {
+                        if (inDate && !Number(inDate)) {
+                            return res.status(400).json(error({ requestId: req.id, code: 400 }));
+                        }
+                    }
+                    else {
                         return res.status(400).json(error({ requestId: req.id, code: 400 }));
                     }
                 }
                 else {
-                    return res.status(400).json(error({ requestId: req.id, code: 400 }));
+                    showCurrent = true;
                 }
-            }
-            else {
-                showCurrent = true;
-            }
 
-            let currentFacility;
-            if (showCurrent) {
-                currentFacility = await CheckIn.findOne({ facilityId, dateCheckIn: { $gte: new Date(new Date().setUTCHours(0, 0, 0, 0)) } });
-            }
-            else if (showAll) {
-                currentFacility = await CheckIn.find({ facilityId });
-            }
-            else {
-                currentFacility = await CheckIn.find({ facilityId, dateCheckIn: { $gte: new Date(new Date(inDate)), $lte: new Date(new Date(inDate).setUTCHours(23, 59, 59, 59)) } });
-            }
+                let currentFacility;
+                if (showCurrent) {
+                    currentFacility = await CheckIn.findOne({ facilityId, dateCheckIn: { $gte: new Date(new Date().setUTCHours(0, 0, 0, 0)) } });
+                }
+                else if (showAll) {
+                    currentFacility = await CheckIn.find({ facilityId });
+                }
+                else {
+                    currentFacility = await CheckIn.find({ facilityId, dateCheckIn: { $gte: new Date(new Date(inDate)), $lte: new Date(new Date(inDate).setUTCHours(23, 59, 59, 59)) } });
+                }
 
-            res.json(success({ requestId: req.id, data: currentFacility }));
+                res.json(success({ requestId: req.id, data: currentFacility }));
+            }
+            else{
+                res.status(404).json(error({ requestId: req.id, code: 404 }));
+            }
 
         } catch (e) {
-            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message ? e.message : e }));
+            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message }));
         }
     });
 
@@ -281,7 +297,7 @@ app.get('/facilities/:facilityId/media/safety-video',
             const { facilityId } = req.params;
             const userId = req.user_id;
 
-            if (!validator.isMongoId(facilityId) || !validator.isMongoId(userId)) {
+            if (!validator.isMongoId(facilityId)) {
                 return res.status(400).json(error({ requestId: req.id, code: 400 }));
             }
 
@@ -303,21 +319,21 @@ app.get('/facilities/:facilityId/media/safety-video',
                                         reject({ statusCode: 404 });
                                     }
                                 })
-                                .catch(() => reject({ statusCode: 500 }));
+                                .catch(e => reject({ statusCode: 500, message: e.message }));
                         }
                         else {
                             reject({ statusCode: 404 });
                         }
                     })
-                    .catch(() => reject({ statusCode: 500 }));
+                    .catch(e => reject({ statusCode: 500, message: e.message }));
             });
 
             result
                 .then(data => res.json(success({ requestId: req.id, data })))
-                .catch(({ statusCode }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500 })));
+                .catch(({ statusCode, message }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500, message })));
 
         } catch (e) {
-            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message ? e.message : e }));
+            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message }));
         }
     });
 
@@ -335,38 +351,38 @@ app.put('/facilities/:facilityId/media/safety-video',
             const { facilityId } = req.params;
             const userId = req.user_id;
 
-            if (!validator.isMongoId(facilityId) || !validator.isMongoId(userId)) {
+            if (!validator.isMongoId(facilityId)) {
                 return res.status(400).json(error({ requestId: req.id, code: 400 }));
             }
 
             const result = new Promise((resolve, reject) => {
                 const userFacility = UserFacility.find({ facilityId, userId });
                 userFacility
-                    .then(async (userFacility) => {
+                    .then((userFacility) => {
                         if (userFacility && userFacility.length > 0) {
 
                             const setSafetyVideo = userFacility.pop();
                             setSafetyVideo.safetyVideo = true;
 
                             try {
-                                resolve(await setSafetyVideo.save());
-                            } catch {
-                                reject({ statusCode: 500 });
+                                resolve(setSafetyVideo.save());
+                            } catch(e) {
+                                reject({ statusCode: 500, message: e.message });
                             }
                         }
                         else {
                             reject({ statusCode: 404 });
                         }
                     })
-                    .catch(() => reject({ statusCode: 500 }));
+                    .catch(e => reject({ statusCode: 500, message: e.message }));
             });
 
             result
                 .then(data => res.json(success({ requestId: req.id, data })))
-                .catch(({ statusCode }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500 })));
+                .catch(({ statusCode, message }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500, message })));
 
         } catch (e) {
-            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message ? e.message : e }));
+            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message }));
         }
     });
 

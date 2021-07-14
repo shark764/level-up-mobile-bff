@@ -67,7 +67,7 @@ gameSchema.statics.newGame = function (data, loggedUser) {
             .then(result => {
                 
                 if (result) {
-                    return reject({ statusCode: 409 });
+                    reject({ statusCode: 409 });
                 }
 
                 try {
@@ -84,11 +84,11 @@ gameSchema.statics.newGame = function (data, loggedUser) {
 
                     resolve(gameToCreate.save(gameToCreate));
 
-                } catch {
-                    return reject({ statusCode: 500 });
+                } catch(e) {
+                    reject({ statusCode: 500, message: e.message });
                 }
             })
-            .catch(() => reject({ statusCode: 500 }));
+            .catch(e => reject({ statusCode: 500, message: e.message }));
     });
 };
 

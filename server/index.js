@@ -31,8 +31,7 @@ app.use(require('./routes/Social/Invitations'));
 app.use(require('./routes/LeaderBoard'));
 //app.use(require('./routes/uploads'))
 app.use(require('./routes/UserManagement/avatar'));
-app.use(require('./routes/More/Settings'));
-app.use(require('./routes/SafetyVideo'));
+app.use(require('./routes/More/Settings')); 
 
 
 

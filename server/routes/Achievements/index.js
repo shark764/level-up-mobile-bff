@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { success } = require('../../utils/helpers/response');
-const { error } = require('../../utils/helpers/response');
 const Achievement = require('../../db/models/Achievement');
+const { success, error } = require('../../utils/helpers/response');
 const { validateSession, validateTokenAlive, validateExistenceAccessHeader } = require('../../middlewares');
 
 router.post(
@@ -15,7 +14,7 @@ router.post(
     (req, res) => {
         Achievement.newAchievement(req.body)
             .then(data => res.json(success({ requestId: req.id, data })))
-            .catch(({ statusCode }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500 })));
+            .catch(({ statusCode, message }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500, message })));
     });
 
 module.exports = router;

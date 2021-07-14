@@ -63,8 +63,8 @@ UserFacilitySchema.statics.getUserFacility = async(userId, facilityId) => {
                 'facilityId': ObjectId(facilityId),
                 'userId': ObjectId(userId)
             });
-        } catch (err) {
-            return null;
+        } catch (e) {
+            throw new Error({statusCode: 500});
         }
     };
 

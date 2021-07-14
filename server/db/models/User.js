@@ -1,24 +1,23 @@
 const mongoose = require('mongoose');
 const UserFacility = require('./User_Facility');
-const Facility = require('../models/Facility');
 const UserMatch = require('./User_Match');
 const Group = require('../models/Group');
 const UserFriend = require('../models/User_Friend');
-const {ObjectId} = mongoose.Types;
+const { ObjectId } = mongoose.Types;
 
 const userSchema = new mongoose.Schema({
     email: {
         type: String,
         unique: true,
         required: true,
-        trim: true,
-       
+        trim: true
     },
 
-    location:{
-        type: {type: String, default: "Point"},
-        coordinates: [{type: Number}]
+    location: {
+        type: { type: String, default: "Point" },
+        coordinates: [{ type: Number }]
     },
+
     userProfile: {
         about: {
             type: String
@@ -30,354 +29,358 @@ const userSchema = new mongoose.Schema({
             type: String
         }
     },
+
     password: {
-        type: String,        
+        type: String,
         required: false,
         minlength: 5
     },
+
     businessName: {
         type: String,
-        //required: false,
         trim: true
     },
+
     firstName: {
         type: String,
         required: false,
         trim: true
     },
+
     lastName: {
         type: String,
         required: false,
         trim: true
     },
+
     displayName: {
         type: String,
         required: false,
         trim: true
-    }, 
+    },
+
     providerId: {
         type: String,
         trim: true
     },
+
     provider: {
         type: String,
         trim: true
     },
+
     role: {
         type: String,
         required: true,
         trim: true
     },
+
     active: {
         type: Boolean,
         required: true
     },
-    profileImg:{
+
+    profileImg: {
         type: String
     },
-    coverPhoto:{
+
+    coverPhoto: {
         type: String
     }
 });
 
 
 // Get a rank/score of a specific user/facility.
-userSchema.statics.getRankByFacility= async(userId, facilityId)=>{
-    try{
-        const userFacilities = await UserFacility.find({facilityId}).distinct('_id');
-        const userFacility = await UserFacility.findOne({facilityId,userId});
-        return new Promise((resolve,reject)=>{
-            userFacility? 
-            UserMatch.aggregate([
-                {
-                "$match":{
-                    "userFacilityId":{
-                        "$in": userFacilities
-                    }
-                }
-                },
-                {
-                    "$group":{
-                        "_id": "$userFacilityId",
-                        "score": {
-                            "$sum" : "$score"
-                        },
-                       
-                    }
-                },
-                {
-                    "$sort":{
-                        "score": -1
-                    }
-                },
-             
-                {
-                    "$group":{
-                        "_id": null,
-                        "docs": {"$push": "$$ROOT"}
-                    }
-                },
-                { 
-                    "$project": { 
-                        "_id": 0,
-                       "R": { 
-                           "$map": {
-                               "input": { "$range": [ 0, { "$size": "$docs" } ] },
-                                "in": {
-                                   "$mergeObjects": [ 
-                                       { "rank": { "$add": [ "$$this", 1 ] } },
-                                       { "$arrayElemAt": [ "$docs", "$$this" ] }
-                                   ]
-                               }
-                           }
-                       }
-                    }
-                },
-                { 
-                    "$unwind": "$R" 
-                },
-                { 
-                    "$replaceRoot": { "newRoot": "$R" } 
-                },
-                {
-                    "$match":{"_id": userFacility._id}
-                }
-            
-            
-            
-            ]).exec((err,results)=>{
-                // console.log("Resultsss",results);
-                if(err) reject(err);
-                if(results.length === 0) reject("Check query based error");
-                resolve( results.pop());
-            }) : reject("No userFacilityFound please check params.");
-    });
-}catch(e){
-    throw new Error(e);
-}
- 
-};
-
-userSchema.statics.leaderBoard = async()=>{
-    try{
-        return new Promise((resolve,reject)=>{
-            UserMatch.aggregate([
-                {
-                    "$group":{
-                        "_id": "$userFacilityId",
-                        "score":{
-                            "$sum": "$score"
-                        },
-                    }
-                },
-                {
-                    "$lookup":{
-                        "from": "user_facilities",
-                        "let":{"id": '$_id'},
-                        "pipeline":[
-                            {
-                               "$match":{
-                                   "$expr":{
-                                       "$eq":["$_id","$$id"]
-                                   }
-                               } 
+userSchema.statics.getRankByFacility = async (userId, facilityId) => {
+    try {
+        const userFacilities = await UserFacility.find({ facilityId }).distinct('_id');
+        const userFacility = await UserFacility.findOne({ facilityId, userId });
+        return new Promise((resolve, reject) => {
+            userFacility ?
+                UserMatch.aggregate([
+                    {
+                        "$match": {
+                            "userFacilityId": {
+                                "$in": userFacilities
+                            }
+                        }
+                    },
+                    {
+                        "$group": {
+                            "_id": "$userFacilityId",
+                            "score": {
+                                "$sum": "$score"
                             },
-                            {
-                                "$project":{
-                                    "userId": 1,
-                                    "facilityId": 1,
+
+                        }
+                    },
+                    {
+                        "$sort": {
+                            "score": -1
+                        }
+                    },
+
+                    {
+                        "$group": {
+                            "_id": null,
+                            "docs": { "$push": "$$ROOT" }
+                        }
+                    },
+                    {
+                        "$project": {
+                            "_id": 0,
+                            "R": {
+                                "$map": {
+                                    "input": { "$range": [0, { "$size": "$docs" }] },
+                                    "in": {
+                                        "$mergeObjects": [
+                                            { "rank": { "$add": ["$$this", 1] } },
+                                            { "$arrayElemAt": ["$docs", "$$this"] }
+                                        ]
+                                    }
                                 }
                             }
-                        ],
-                        "as": "userFacility"
+                        }
+                    },
+                    {
+                        "$unwind": "$R"
+                    },
+                    {
+                        "$replaceRoot": { "newRoot": "$R" }
+                    },
+                    {
+                        "$match": { "_id": userFacility._id }
                     }
-                },
-                {
-                    "$unwind":{
-                        "path": "$userFacility"
-                    }
-                },
-                {
-                    "$group":{
-                        "_id": "$userFacility.userId",
-                        "score":{
-                            "$sum": "$score",
-                        },
-                    }
-                },
-                {
-                    "$sort":{
-                        "score": -1
-                    }
-                },
-                {
-                    "$group":{
-                        "_id": null,
-                        "docs": {"$push": "$$ROOT"}
-                    }
-                },
-                { 
-                    "$project": { 
-                        "_id": 0,
-                       "R": { 
-                           "$map": {
-                               "input": { "$range": [ 0, { "$size": "$docs" } ] },
-                                "in": {
-                                   "$mergeObjects": [ 
-                                       { "rank": { "$add": [ "$$this", 1 ] } },
-                                       { "$arrayElemAt": [ "$docs", "$$this" ] }
-                                   ]
-                               }
-                           }
-                       }
-                    }
-                },
-                { 
-                    "$unwind": "$R" 
-                },
-                { 
-                    "$replaceRoot": { "newRoot": "$R" } 
-                },
-                
-            ]).exec(async(err,results)=>{
-                if (err) reject(err);
-                // console.log("Results",results);
-                resolve(results);
-            });
+
+
+
+                ]).exec((err, results) => {
+                    // console.log("Resultsss",results);
+                    if (err) reject(err);
+                    if (results.length === 0) reject("Check query based error");
+                    resolve(results.pop());
+                }) : reject("No userFacilityFound please check params.");
         });
-    }catch(e){
+    } catch (e) {
         throw new Error(e);
     }
+
+};
+
+userSchema.statics.leaderBoard = () => {
+    return new Promise((resolve, reject) => {
+        UserMatch.aggregate([
+            {
+                "$group": {
+                    "_id": "$userFacilityId",
+                    "score": {
+                        "$sum": "$score"
+                    },
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "user_facilities",
+                    "let": { "id": '$_id' },
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$eq": ["$_id", "$$id"]
+                                }
+                            }
+                        },
+                        {
+                            "$project": {
+                                "userId": 1,
+                                "facilityId": 1,
+                            }
+                        }
+                    ],
+                    "as": "userFacility"
+                }
+            },
+            {
+                "$unwind": {
+                    "path": "$userFacility"
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$userFacility.userId",
+                    "score": {
+                        "$sum": "$score",
+                    },
+                }
+            },
+            {
+                "$sort": {
+                    "score": -1
+                }
+            },
+            {
+                "$group": {
+                    "_id": null,
+                    "docs": { "$push": "$$ROOT" }
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0,
+                    "R": {
+                        "$map": {
+                            "input": { "$range": [0, { "$size": "$docs" }] },
+                            "in": {
+                                "$mergeObjects": [
+                                    { "rank": { "$add": ["$$this", 1] } },
+                                    { "$arrayElemAt": ["$docs", "$$this"] }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "$unwind": "$R"
+            },
+            {
+                "$replaceRoot": { "newRoot": "$R" }
+            },
+
+        ]).exec((e, results) => {
+            if (e) {
+                reject(e);
+            }
+            resolve(results);
+        });
+    });
 };
 
 // Get the global rank with score of user.
-userSchema.statics.getGlobalRank = async(userId)=>{
-    try{
-        return new Promise((resolve,reject)=>{
-            UserMatch.aggregate([
-                {
-                    "$group":{
-                        "_id": "$userFacilityId",
-                        "score":{
-                            "$sum": "$score"
-                        },
-                    }
-                },
-                {
-                    "$lookup":{
-                        "from": "user_facilities",
-                        "let":{"id": '$_id'},
-                        "pipeline":[
-                            {
-                               "$match":{
-                                   "$expr":{
-                                       "$eq":["$_id","$$id"]
-                                   }
-                               } 
-                            },
-                            {
-                                "$project":{
-                                    "userId": 1,
-                                    "facilityId": 1,
+userSchema.statics.getGlobalRank = (userId) => {
+    return new Promise((resolve, reject) => {
+        UserMatch.aggregate([
+            {
+                "$group": {
+                    "_id": "$userFacilityId",
+                    "score": {
+                        "$sum": "$score"
+                    },
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "user_facilities",
+                    "let": { "id": '$_id' },
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$eq": ["$_id", "$$id"]
                                 }
                             }
-                        ],
-                        "as": "userFacility"
-                    }
-                },
-                {
-                    "$unwind":{
-                        "path": "$userFacility"
-                    }
-                },
-                {
-                    "$group":{
-                        "_id": "$userFacility.userId",
-                        "score":{
-                            "$sum": "$score",
                         },
-                    }
-                },
-                {
-                    "$sort":{
-                        "score": -1
-                    }
-                },
-                {
-                    "$group":{
-                        "_id": null,
-                        "docs": {"$push": "$$ROOT"}
-                    }
-                },
-                { 
-                    "$project": { 
-                        "_id": 0,
-                       "R": { 
-                           "$map": {
-                               "input": { "$range": [ 0, { "$size": "$docs" } ] },
-                                "in": {
-                                   "$mergeObjects": [ 
-                                       { "rank": { "$add": [ "$$this", 1 ] } },
-                                       { "$arrayElemAt": [ "$docs", "$$this" ] }
-                                   ]
-                               }
-                           }
-                       }
-                    }
-                },
-                { 
-                    "$unwind": "$R" 
-                },
-                { 
-                    "$replaceRoot": { "newRoot": "$R" } 
-                },
-                {
-                       "$match":{
-                           "_id": ObjectId(userId)
-                       } 
+                        {
+                            "$project": {
+                                "userId": 1,
+                                "facilityId": 1,
+                            }
+                        }
+                    ],
+                    "as": "userFacility"
                 }
-                
-            ]).exec((err,results)=>{
-                if(err) reject(err);
-                if(results.length === 0) resolve({rank: null, _id: userId, score: 0});
-                resolve(results.pop());
-            });
+            },
+            {
+                "$unwind": {
+                    "path": "$userFacility"
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$userFacility.userId",
+                    "score": {
+                        "$sum": "$score",
+                    },
+                }
+            },
+            {
+                "$sort": {
+                    "score": -1
+                }
+            },
+            {
+                "$group": {
+                    "_id": null,
+                    "docs": { "$push": "$$ROOT" }
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0,
+                    "R": {
+                        "$map": {
+                            "input": { "$range": [0, { "$size": "$docs" }] },
+                            "in": {
+                                "$mergeObjects": [
+                                    { "rank": { "$add": ["$$this", 1] } },
+                                    { "$arrayElemAt": ["$docs", "$$this"] }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "$unwind": "$R"
+            },
+            {
+                "$replaceRoot": { "newRoot": "$R" }
+            },
+            {
+                "$match": {
+                    "_id": ObjectId(userId)
+                }
+            }
+
+        ]).exec((e, results) => {
+            if (e)
+                reject({statusCode: 500});
+            if (results.length === 0)
+                resolve({ rank: null, _id: userId, score: 0 });
+            resolve(results.pop());
         });
-        
-    }catch(e){
-        throw new Error(e);   
-    }
+    });
 };
 
 // Get ranking with score in facilities of user.
-userSchema.statics.getRankingInFacilities = async(userId)=>{
-    try{
+userSchema.statics.getRankingInFacilities = async (userId) => {
+    try {
         // Get facilities in which user is member.
-        const facilities = await UserFacility.find({userId}).distinct("facilityId");
-        
-        return new Promise((resolve,reject)=>{
+        const facilities = await UserFacility.find({ userId }).distinct("facilityId");
+
+        return new Promise((resolve, reject) => {
             UserFacility.aggregate([
-           
+
                 {
-                    "$match":{
-                        "facilityId":{
+                    "$match": {
+                        "facilityId": {
                             "$in": facilities
                         }
                     }
                 },
                 {
-                    "$lookup":{
+                    "$lookup": {
                         "from": "user_matches",
-                        "let":{"facid": "$_id"},
-                        "pipeline":[
-                           {
-                            "$match":{
-                               "$expr":{
-                                   "$eq":["$userFacilityId","$$facid"]
-                               }
-                            }
-                           },
-                          
+                        "let": { "facid": "$_id" },
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$expr": {
+                                        "$eq": ["$userFacilityId", "$$facid"]
+                                    }
+                                }
+                            },
+
                         ],
                         "as": "matches"
                     }
@@ -385,71 +388,71 @@ userSchema.statics.getRankingInFacilities = async(userId)=>{
                 {
                     "$unwind": {
                         "path": "$matches"
-                    }   
-                },
-                {
-                    "$group":{
-                        "_id": "$_id",
-                        "score":{
-                            "$sum": "$matches.score"
-                        },
-                        "facilityId":{
-                            "$first": "$facilityId"
-                        },
-    
-                        "userId":{
-                            "$first": "$userId"
-                        }
-                     
                     }
                 },
                 {
-                    "$sort":{
+                    "$group": {
+                        "_id": "$_id",
+                        "score": {
+                            "$sum": "$matches.score"
+                        },
+                        "facilityId": {
+                            "$first": "$facilityId"
+                        },
+
+                        "userId": {
+                            "$first": "$userId"
+                        }
+
+                    }
+                },
+                {
+                    "$sort": {
                         "score": -1
                     }
                 },
                 {
-                    "$group":{
+                    "$group": {
                         "_id": null,
-                        "docs": {"$push": "$$ROOT"}
+                        "docs": { "$push": "$$ROOT" }
                     }
-                },
-                { 
-                    "$project": { 
-                        "_id": 0,
-                       "R": { 
-                           "$map": {
-                               "input": { "$range": [ 0, { "$size": "$docs" } ] },
-                                "in": {
-                                   "$mergeObjects": [ 
-                                       { "rank": { "$add": [ "$$this", 1 ] } },
-                                       { "$arrayElemAt": [ "$docs", "$$this" ] }
-                                   ]
-                               }
-                           }
-                       }
-                    }
-                },
-                { 
-                    "$unwind": "$R" 
-                },
-                { 
-                    "$replaceRoot": { "newRoot": "$R" } 
                 },
                 {
-                    "$match":{
+                    "$project": {
+                        "_id": 0,
+                        "R": {
+                            "$map": {
+                                "input": { "$range": [0, { "$size": "$docs" }] },
+                                "in": {
+                                    "$mergeObjects": [
+                                        { "rank": { "$add": ["$$this", 1] } },
+                                        { "$arrayElemAt": ["$docs", "$$this"] }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "$unwind": "$R"
+                },
+                {
+                    "$replaceRoot": { "newRoot": "$R" }
+                },
+                {
+                    "$match": {
                         "userId": ObjectId(userId),
                     }
                 },
                 {
-                    "$lookup":{
+                    "$lookup": {
                         "from": "facilities",
-                        "let": {"fac": "$facilityId"},
-                        "pipeline":[
+                        "let": { "fac": "$facilityId" },
+                        "pipeline": [
                             {
-                                "$match":{
-                                    "$expr":{
-                                        "$eq":["$_id","$$fac"]
+                                "$match": {
+                                    "$expr": {
+                                        "$eq": ["$_id", "$$fac"]
                                     }
                                 }
                             }
@@ -457,29 +460,29 @@ userSchema.statics.getRankingInFacilities = async(userId)=>{
                         "as": "facility"
                     }
                 },
-    
+
                 {
-                    "$unwind":{
+                    "$unwind": {
                         "path": "$facility"
                     }
                 },
                 {
-                    "$project":{
+                    "$project": {
                         "facility.__v": 0,
-                        "facilityId":0
+                        "facilityId": 0
                     }
                 }
-                
-                
-             
-            ]).exec((err,results)=>{
-                console.log("results",results);
-                if(err) reject(err);
+
+
+
+            ]).exec((err, results) => {
+                console.log("results", results);
+                if (err) reject(err);
                 resolve(results);
             });
-            
+
         });
-    }catch(e){
+    } catch (e) {
         throw new Error(e);
     }
 };
@@ -504,18 +507,18 @@ userSchema.statics.findByCredentials = async (email, password) => {
 // find user by id
 userSchema.statics.getUserById = async (id) => {
     //const userId = mongoose.Types.ObjectId(id)
-    const user =  User.findById(id, (err, user)=> {
-        
+    const user = User.findById(id, (err, user) => {
+
     });
     return user;
-    
+
 
 };
 
 // add avatar picture
 userSchema.statics.addAvatar = async (url, id) => {
     const user = await User.findById(id);
-    
+
     //user.userProfile.pop()
     user.userProfile.photo = url;
     await user.save();
@@ -1017,10 +1020,10 @@ userSchema.statics.findUserInGroup = async (inGroupId, inUserId, inOption) => {
                 reject(error);
             }
             if (result.length === 0) {
-                if(inOption){
+                if (inOption) {
                     resolve(result);
                 }
-                else{
+                else {
                     reject(`No data found for User ${inUserId} and Group ${inGroupId}`);
                 }
             }
@@ -1066,7 +1069,7 @@ userSchema.statics.userIsAdmin = (inGroupId, inUserId) => {
             if (result.length === 0) {
                 reject(`Permission denied for User ${inUserId} is not an administrator in Group ${inGroupId}`);
             }
-            else{
+            else {
                 resolve(result);
             }
         });

@@ -9,15 +9,16 @@ const {
     USER_NOT_IN_FACILITY
 } = require('../../utils/helpers/consts');
 
+
 const userAchievementsSchema = new mongoose.Schema({
     achievementId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'achievements',
+        ref: 'achievements'
     },
 
     userFacilityId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'user_facilities',
+        ref: 'user_facilities'
     },
 
     dateOfAchivied: {
@@ -121,6 +122,7 @@ userAchievementsSchema.statics.claim = async function (achievementId, userId, fa
     });
 };
 
+
 userAchievementsSchema.statics.getAllUserAchievements = async function (userId, facilityId) {   
     return new Promise(async (resolve, reject) => {
 
@@ -203,6 +205,6 @@ userAchievementsSchema.statics.getAllUserAchievements = async function (userId, 
     });
 };
 
-const UserAchievement = mongoose.model('user_achievements', userAchievementsSchema);
 
+const UserAchievement = mongoose.model('user_achievements', userAchievementsSchema);
 module.exports = UserAchievement;

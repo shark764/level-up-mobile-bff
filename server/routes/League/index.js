@@ -1,30 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const {success} = require('../../utils/helpers/response');
-const {error} = require('../../utils/helpers/response');
 const League = require('../../db/models/League');
+const { success, error } = require('../../utils/helpers/response');
+const { validateSession, validateTokenAlive, validateExistenceAccessHeader } = require('../../middlewares');
 
-const validateAccess = require('../../middlewares/validateAccess');
 
+router.post('/league',
+[
+    validateExistenceAccessHeader,
+    validateSession,
+    validateTokenAlive
+], 
+(req, res) => {
 
-router.post('/league', validateAccess, async (req, res) => {
-    League.newLeague(req.body, req.user.data._id)
-        .then (data => {
-            res.status(201)
-                .json(success({
-                    requestId: req.id,
-                    data
-                }));
-        }).catch( err => {
-            res.status(400)
-                .json(error({
-                    requestId: req.id,
-                    code: 400,
-                    message: err
-                }));
-        });    
+    League.newLeague(req.body, req.user_id)
+    .then(data => res.json(success({requestId: req.id, data })))
+    .catch(({ statusCode }) => { res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500 }));});
 });
-
 
 
 module.exports = router;

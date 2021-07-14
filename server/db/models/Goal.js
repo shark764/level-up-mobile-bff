@@ -2,10 +2,11 @@ const mongooose = require('mongoose');
 
 
 const goalSchema = new mongooose.Schema({
+
     goalName:{
         type: String,
         required: true,
-        unique: true,
+        unique: true
     },
 
     goalCategoryId:{
@@ -15,9 +16,10 @@ const goalSchema = new mongooose.Schema({
     },
 
     imageUrl:{
-        type: String,
-    },
+        type: String
+    }
 
 });
 
-module.exports = mongooose.model('goal',goalSchema);
+const Goal = mongooose.model('goal',goalSchema);
+module.exports = Goal;

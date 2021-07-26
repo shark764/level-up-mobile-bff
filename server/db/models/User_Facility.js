@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 const {ObjectId} = mongoose.Types;
+const consts = require('../../utils/consts');
+
+
 const UserFacilitySchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -48,9 +51,9 @@ UserFacilitySchema.statics.isAlreadyMember = async(userId, facilityId) => new Pr
             }
         ]).exec((err, relation) => {
             if (err) {
-                reject({ statusCode: 500, error:err });
+                reject({ statusCode: 500, message:err.message });
             } else if (relation.length !== 0) {
-                reject({ statusCode: 409, error: 'User is already a member' });
+                reject({ statusCode: 409, message: consts.USER_MEMBER });
             } else {
                 resolve(true);
             }

@@ -5,23 +5,18 @@ const Facility = require('../../../db/models/Facility');
 const PaymentMethod = require('../../../db/models/Payment_Method');
 const setExpirationDate = require("../../../utils/helpers/setExpirationDate");
 
-const createMembership = async({user,membership,payload})=>{
+const createMembership = async(userId,membership)=>{
 
-    const facility = await Facility.findById(membership.facilityId);
-    const userFacility = new UserFacility({userId: user, facilityId: facility});
-    const paymentMethod = await PaymentMethod.getIdByName(payload.Type);
-    console.log("PaymentMethodId",paymentMethod);
+    const userFacility = new UserFacility({ userId, facilityId: membership.facilityId});
     const userMembership = new UserMembership({
         userFacilityId: userFacility,
         membershipId: membership,
-        paymentMethodId: paymentMethod,
-        price: membership.price,
-        expirationDate: setExpirationDate(membership.validPeriod)
-
+        price:membership.price ,
+       expirationDate:membership.validPeriod + Date.now()
     });
-    await userFacility.save();
-    await userMembership.save();
-    return userMembership;
+    
+    const savedUserMembership = await Promise.all([useFacility.save(),userMembership.save()]);
+    return savedUserMembership;
 };
 
 

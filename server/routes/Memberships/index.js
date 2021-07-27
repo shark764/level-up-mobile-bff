@@ -23,7 +23,7 @@ app.get('/memberships/:membershipId',
     try{
         
         const validationResult = await 
-userMemberships.validateMembership(req.params.membershipId);
+Membership.validateMembership(req.params.membershipId);
 
         if (validationResult.code !== 200) {
           return res.status(validationResult.code).json(

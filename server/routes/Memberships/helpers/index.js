@@ -1,4 +1,3 @@
-
 const UserFacility = require('../../../db/models/User_Facility');
 const UserMembership = require('../../../db/models/User_Membership');
 const Facility = require('../../../db/models/Facility');
@@ -15,7 +14,7 @@ const createMembership = async(userId,membership)=>{
        expirationDate:membership.validPeriod + Date.now()
     });
     
-    const savedUserMembership = await Promise.all([useFacility.save(),userMembership.save()]);
+    const savedUserMembership = await Promise.all([userFacility.save(),userMembership.save()]);
     return savedUserMembership;
 };
 

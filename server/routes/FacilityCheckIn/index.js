@@ -84,10 +84,10 @@ app.get('/facilities',
                                     })
                                     .catch((e) => reject({ statusCode: 500, message: e.message }));
                             } else {
-                                reject({ statusCode: 400 });
+                                resolve(data);
                             }
                         } else {
-                            resolve(data);
+                            reject({ statusCode: 400 });
                         }
                     })
                     .catch((e) => reject({ statusCode: 500, message: e.message }));

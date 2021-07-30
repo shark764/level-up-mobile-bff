@@ -62,9 +62,12 @@ app.get('/facilities',
                                                             "name": 1,
                                                             "description": 1,
                                                             "pictures": 1,
-                                                             "distance": {
-                                                                 "$round": ["$distance", 3]
-                                                             }
+
+                                                            // READ !!!! THIS IS NOT A BUG EVENTUALLY THIS WILL GET TO LIFE!
+                                                            "distance": 1
+                                                            //  "distance": {
+                                                            //      "$round": ["$distance", 3]
+                                                            //  }
                                                         }
                                                     },
                                                 ]).exec((e, nearFacilities) => {

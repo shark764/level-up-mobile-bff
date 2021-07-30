@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+import { isMongoId } from 'validator';
+
 const {ObjectId} = mongoose.Types;
 const Achievement = require('./Achievement');
 const UserFacility = require('./User_Facility');
@@ -41,6 +43,13 @@ const userAchievementsSchema = new mongoose.Schema({
 userAchievementsSchema.statics.newUserAchievement = async function (data, userId, achievementId) {
     return new Promise(async (resolve, reject) => {
         try {
+
+            if (!isMongoId(userId)) {
+                return reject({
+                    code: 400
+                });
+            }
+
             const userFacility = await UserFacility.getUserFacility(userId, data.facilityId);
             if (!userFacility) {
                 return reject('User not in facility');
@@ -81,6 +90,11 @@ userAchievementsSchema.statics.newUserAchievement = async function (data, userId
 userAchievementsSchema.statics.claim = async function (achievementId, userId, facilityId) {
     return new Promise(async (resolve, reject) => {
         try {
+            if (!isMongoId(userId)) {
+                return reject({
+                    code: 400
+                });
+            }
             const userFacility = await UserFacility.getUserFacility(userId, facilityId);
             if (!userFacility) {
                 return reject({
@@ -127,6 +141,13 @@ userAchievementsSchema.statics.getAllUserAchievements = async function (userId, 
     return new Promise(async (resolve, reject) => {
 
         let userFacilitiesIds = [];
+
+        if (!isMongoId(userId)) {
+            return reject({
+                code: 400
+            });
+        }
+
         if (!facilityId) {
             const allUserFacility = await UserFacility.getAllUserFacility(userId);
             if (!allUserFacility) {

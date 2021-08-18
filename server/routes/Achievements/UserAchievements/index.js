@@ -1,37 +1,36 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
-const {success} = require('../../utils/helpers/response');
-const {error} = require('../../utils/helpers/response');
-const UserAchievement = require('../../db/models/User_Achievement');
+const {success,error} = require('../../../utils/helpers/response');
+const UserAchievement = require('../../../db/models/User_Achievement');
 
 
 const {
     validateTokenAlive,
     validateExistenceAccessHeader,
     validateSession,
-    validateAuth
-} = require('../../middlewares');
+} = require('../../../middlewares');
 
-router.post('/:id',
+router.post('/:achievementId',
     [
         validateExistenceAccessHeader,
         validateSession,
         validateTokenAlive,
-        validateAuth,
     ],
-    async (req, res)  =>  {
-    await UserAchievement.newUserAchievement(req.body, req.params.userId, req.params.id)
+     (req, res)  =>  {
+    const {userId, achievementId} = req.params;
+    const {facilityId} = req.body;
+     UserAchievement.newUserAchievement(facilityId, userId,achievementId)
         .then (data => {
-            res.status(201)
+            res.status(200)
                 .json(success({
                     requestId: req.id,
                     data
                 }));
         }).catch( err => {
-            res.status(err.code || 400)
+            res.status(err.statusCode || 500)
                 .json(error({
                     requestId: req.id,
-                    code: err.code || 400,
+                    code: err.statusCode || 500,
                     message: err.message
                 }));
         });
@@ -43,10 +42,11 @@ router.get(
         validateExistenceAccessHeader,
         validateSession,
         validateTokenAlive,
-        validateAuth,
     ],
-    async (req, res) => {
-        await UserAchievement.getAllUserAchievements(req.params.userId, req.query.facility)
+     (req, res) => {
+         const {userId} = req.params;
+         const {facility} = req.query;
+         UserAchievement.getAllUserAchievements(userId, facility)
             .then (data => {
                 res.status(200)
                     .json(success({
@@ -54,25 +54,26 @@ router.get(
                         data
                     }));
             }).catch( err => {
-                res.status(err.code || 400)
+                res.status(err.statusCode || 500)
                     .json(error({
                         requestId: req.id,
-                        code: err.code || 400,
+                        code: err.statusCode || 500,
                         message: err.message
                     }));
             });
 });
 
 router.put(
-    '/:id',
+    '/:achievementId',
     [
         validateExistenceAccessHeader,
         validateSession,
         validateTokenAlive,
-        validateAuth,
     ],
-    async (req, res) => {
-        await UserAchievement.claim(req.params.id, req.params.userId, req.body.facilityId)
+     (req, res) => {
+         const {userId, achievementId} = req.params;
+         const {facilityId} = req.body;
+         UserAchievement.claim(achievementId, userId, facilityId)
             .then (data => {
                 res.status(200)
                     .json(success({
@@ -80,10 +81,10 @@ router.put(
                         data
                     }));
             }).catch( err => {
-                res.status(err.code || 400)
+                res.status(err.statusCode || 500)
                     .json(error({
                         requestId: req.id,
-                        code: err.code || 400,
+                        code: err.statusCode || 500,
                         message: err.message
                     }));
             });

@@ -4,90 +4,7 @@ const UserMatch = require('./User_Match');
 const Group = require('../models/Group');
 const UserFriend = require('../models/User_Friend');
 const { ObjectId } = mongoose.Types;
-
-const userSchema = new mongoose.Schema({
-    email: {
-        type: String,
-        unique: true,
-        required: true,
-        trim: true
-    },
-
-    location: {
-        type: { type: String, default: "Point" },
-        coordinates: [{ type: Number }]
-    },
-
-    userProfile: {
-        about: {
-            type: String
-        },
-        photo: {
-            type: String
-        },
-        coverPhoto: {
-            type: String
-        }
-    },
-
-    password: {
-        type: String,
-        required: false,
-        minlength: 5
-    },
-
-    businessName: {
-        type: String,
-        trim: true
-    },
-
-    firstName: {
-        type: String,
-        required: false,
-        trim: true
-    },
-
-    lastName: {
-        type: String,
-        required: false,
-        trim: true
-    },
-
-    displayName: {
-        type: String,
-        required: false,
-        trim: true
-    },
-
-    providerId: {
-        type: String,
-        trim: true
-    },
-
-    provider: {
-        type: String,
-        trim: true
-    },
-
-    role: {
-        type: String,
-        required: true,
-        trim: true
-    },
-
-    active: {
-        type: Boolean,
-        required: true
-    },
-
-    profileImg: {
-        type: String
-    },
-
-    coverPhoto: {
-        type: String
-    }
-});
+const userSchema = require('./schemas/User');
 
 
 // Get a rank/score of a specific user/facility.
@@ -167,8 +84,7 @@ userSchema.statics.getRankByFacility = async (userId, facilityId) => {
 
 };
 
-userSchema.statics.leaderBoard = () => {
-    return new Promise((resolve, reject) => {
+userSchema.statics.leaderBoard = () => new Promise((resolve, reject) => {
         UserMatch.aggregate([
             {
                 "$group": {
@@ -254,11 +170,9 @@ userSchema.statics.leaderBoard = () => {
             resolve(results);
         });
     });
-};
 
 // Get the global rank with score of user.
-userSchema.statics.getGlobalRank = (userId) => {
-    return new Promise((resolve, reject) => {
+userSchema.statics.getGlobalRank = (userId) => new Promise((resolve, reject) => {
         UserMatch.aggregate([
             {
                 "$group": {
@@ -350,7 +264,6 @@ userSchema.statics.getGlobalRank = (userId) => {
             resolve(results.pop());
         });
     });
-};
 
 // Get ranking with score in facilities of user.
 userSchema.statics.getRankingInFacilities = async (userId) => {
@@ -487,49 +400,19 @@ userSchema.statics.getRankingInFacilities = async (userId) => {
     }
 };
 
-// find user by credentials
-userSchema.statics.findByCredentials = async (email, password) => {
-    const user = await User.findOne({ email });
-
-    if (!user) {
-        throw new Error('Unable to login');
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
-        throw new Error('Unable to login');
-    }
-
-    return user;
-};
-
-// find user by id
-userSchema.statics.getUserById = async (id) => {
-    //const userId = mongoose.Types.ObjectId(id)
-    const user = User.findById(id, (err, user) => {
-
-    });
-    return user;
-
-
-};
-
 // add avatar picture
 userSchema.statics.addAvatar = async (url, id) => {
     const user = await User.findById(id);
-
-    //user.userProfile.pop()
     user.userProfile.photo = url;
     await user.save();
     return user;
 };
 
-userSchema.statics.findUserInGroups = async (inUserId) => {
+userSchema.statics.findUserInGroups =  (inUserId) => {
 
     const tempUserId = ObjectId(inUserId);
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
         Group.aggregate([
             { $addFields: { "totalMembers": { $size: "$userMembers" } } },
             { $unwind: { path: "$userMembers", preserveNullAndEmptyArrays: true } },
@@ -601,7 +484,7 @@ userSchema.statics.findUserInGroups = async (inUserId) => {
 };
 
 
-userSchema.statics.findUserNotInGroups = async (inUserId) => {
+userSchema.statics.findUserNotInGroups =  (inUserId) => {
 
     const tempUserId = ObjectId(inUserId);
 
@@ -689,7 +572,7 @@ userSchema.statics.findUserNotInGroups = async (inUserId) => {
     });
 };
 
-userSchema.statics.myFriendsGroups = async (inUserId) => {
+userSchema.statics.myFriendsGroups = (inUserId) => {
 
     const tempUserId = ObjectId(inUserId);
 
@@ -988,7 +871,7 @@ userSchema.statics.myFriendsGroups = async (inUserId) => {
     });
 };
 
-userSchema.statics.findUserInGroup = async (inGroupId, inUserId, inOption) => {
+userSchema.statics.findUserInGroup = (inGroupId, inUserId, inOption) => {
 
     const tempGroupId = ObjectId(inGroupId);
     const tempUserId = ObjectId(inUserId);
@@ -1028,7 +911,7 @@ userSchema.statics.findUserInGroup = async (inGroupId, inUserId, inOption) => {
                 }
             }
             else {
-                data = result.pop();
+                const data = result.pop();
                 resolve(data);
             }
         });

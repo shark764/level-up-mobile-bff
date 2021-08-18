@@ -1,230 +1,116 @@
-const mongoose = require('mongoose');
 import { isMongoId } from 'validator';
-
-const {ObjectId} = mongoose.Types;
+const mongoose = require('mongoose');
 const Achievement = require('./Achievement');
 const UserFacility = require('./User_Facility');
 const {
     ACHIEVEMENT_NOT_FOUND,
-    ALREADY_ACHIEVED,
-    ALREADY_CLAIMED,
-    USER_NOT_IN_FACILITY
+    USER_NOT_IN_FACILITY,
+    ALREADY_CLAIMED
 } = require('../../utils/helpers/consts');
+const {
+    INACTIVE
+} = require('./schemas/configs');
 
+const userAchievementsSchema = require('./schemas/User_Achievement');
 
-const userAchievementsSchema = new mongoose.Schema({
-    achievementId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'achievements'
-    },
-
-    userFacilityId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'user_facilities'
-    },
-
-    dateOfAchivied: {
-        type: Date,
-        required: true,
-        default: new Date()
-    },
-
-    status: {
-        type: String,
-        required: true,
-        default: 'not_claimed'
-    },
-
-    dateOfClaim: {
-        type: Date
-    }
-});
-
-userAchievementsSchema.statics.newUserAchievement = async function (data, userId, achievementId) {
-    return new Promise(async (resolve, reject) => {
-        try {
-
-            if (!isMongoId(userId)) {
-                return reject({
-                    code: 400
-                });
-            }
-
-            const userFacility = await UserFacility.getUserFacility(userId, data.facilityId);
-            if (!userFacility) {
-                return reject('User not in facility');
-            }
-            const achievement = await Achievement.findOne({
-                _id: achievementId
-            });
-            
-            if (!achievement) {
-                return reject('Not a valid achievement');
-            }
-
-            const userAchievement = await UserAchievement.findOne({
-                achievementId,
-                userFacilityId: userFacility._id 
-            });
-
-            if (userAchievement) {
-                return reject({
-                    code: 409,
-                    message: ALREADY_ACHIEVED
-                });
-            }
-            const userAchievementToCreate = new UserAchievement ({
-                achievementId: achievementId,
-                userFacilityId: userFacility._id,
-            });
-    
-            return resolve(
-                await userAchievementToCreate.save(userAchievementToCreate)
-            );
-        } catch (err) {
-            return reject(err.message);
-        }
-    });
+userAchievementsSchema.statics.newUserAchievement = async (facilityId, userId, achievementId) => {
+    if (!isMongoId(userId) || !isMongoId(achievementId) || !isMongoId(facilityId)) throw ({ statusCode: 400 });
+    const userFacilityId = await UserFacility.findOne({ userId, facilityId });
+    if (!userFacilityId) throw ({ statusCode: 404, message: USER_NOT_IN_FACILITY });
+    const achievement = await Achievement.findById(achievementId);
+    if (!achievement) throw ({ statusCode: 404, message: ACHIEVEMENT_NOT_FOUND });
+    const userAchievement = await UserAchievement.findOne({ achievementId, userFacilityId });
+    if (userAchievement) throw ({ statusCode: 409 });
+    const newUserAchievement = await UserAchievement.create({ userFacilityId, achievementId });
+    return newUserAchievement;
 };
 
-userAchievementsSchema.statics.claim = async function (achievementId, userId, facilityId) {
-    return new Promise(async (resolve, reject) => {
-        try {
-            if (!isMongoId(userId)) {
-                return reject({
-                    code: 400
-                });
-            }
-            const userFacility = await UserFacility.getUserFacility(userId, facilityId);
-            if (!userFacility) {
-                return reject({
-                    code: 404,
-                    message: USER_NOT_IN_FACILITY
-                });
-            }
-            const userAchievement = await UserAchievement.findOne({
-                achievementId: ObjectId(achievementId),
-                userFacilityId: userFacility._id
-            });
-
-            if (!userAchievement) {
-                return reject({
-                    code: 404,
-                    message: ACHIEVEMENT_NOT_FOUND
-                });
-            }
-
-            if (userAchievement.status === 'claimed') {
-                return reject({
-                    code: 409,
-                    message: ALREADY_CLAIMED
-                });
-            }
-
-            userAchievement.status = 'claimed';
-            userAchievement.dateOfClaim = Date.now();
-        
-            return resolve(
-                await userAchievement.save()
-            );
-
-        } catch (err) {
-            return reject({
-                code: 400
-            });
-        }
-    });
+userAchievementsSchema.statics.claim = async(achievementId, userId, facilityId)=>{
+            if(!isMongoId(achievementId) || !isMongoId(userId) || !isMongoId(facilityId)) throw({statusCode: 400});
+            const userFacilityId = await UserFacility.findOne({userId,facilityId},'_id');
+            if(!userFacilityId) throw({statusCode: 404,message: USER_NOT_IN_FACILITY});
+            const userAchievement = await UserAchievement.findOne({userFacilityId,achievementId});
+            if(!userAchievement) throw({statusCode:404, message: ACHIEVEMENT_NOT_FOUND});
+            if(userAchievement.status === INACTIVE) throw({statusCode: 409, message: ALREADY_CLAIMED});
+            userAchievement.status = INACTIVE;
+            userAchievement.dateOfAchieved = Date.now();
+            const savedUserAchievement = await userAchievement.save();
+            return savedUserAchievement;
 };
 
 
-userAchievementsSchema.statics.getAllUserAchievements = async function (userId, facilityId) {   
-    return new Promise(async (resolve, reject) => {
-
-        let userFacilitiesIds = [];
-
-        if (!isMongoId(userId)) {
-            return reject({
-                code: 400
-            });
-        }
-
+userAchievementsSchema.statics.getAllUserAchievements =  async(userId, facilityId)=>{
+   
+        if (!isMongoId(userId)) throw ({statusCode: 400});
+        let  userFacilities;
         if (!facilityId) {
-            const allUserFacility = await UserFacility.getAllUserFacility(userId);
-            if (!allUserFacility) {
-                return reject({
-                    code: 404,
-                    message: USER_NOT_IN_FACILITY
-                });
-            }
-            allUserFacility.forEach((userFacility) => {
-                userFacilitiesIds.push(userFacility._id);
-            });
-        } else {
-            const userFacility = await UserFacility.getUserFacility(userId, facilityId);
-            if (!userFacility) {
-                return reject({
-                    code: 404,
-                    message: USER_NOT_IN_FACILITY
-                });
-            }
-            userFacilitiesIds.push(userFacility._id);
+            userFacilities = await UserFacility.find({userId}).distinct('_id');
+        } else if (!isMongoId(facilityId)){
+            throw({statusCode:400});
+        }else{
+            userFacilities = await UserFacility.find({userId,facilityId}).distinct('_id');
         }
-
-        UserAchievement.aggregate([
-            { $match : {
-                'userFacilityId' : {
-                    $in: userFacilitiesIds
-                }
-            }},
-            { $lookup: {
-                from: 'achievements', // collection name in db
-                localField: 'achievementId',
-                foreignField: '_id',
-                as: 'achievement'
-            }},
-            { $match : { 'achievement.status' : "active" } },
-            { $unwind: '$achievement'},
-
-            { $lookup: {
-                from: 'user_facilities',
-                localField: 'userFacilityId',
-                foreignField: '_id',
-                as: 'user_facility'
-            }},
-            { $unwind: '$user_facility'},
-
-            { $lookup: {
-                from: 'facilities',
-                localField: 'user_facility.facilityId',
-                foreignField: '_id',
-                as: 'facility'
-            }},
-            { $unwind: '$facility'},
-
-            { $project: {
-                '_id': 1,
-                'achievement.name': 1,
-                'achievement.description': 1,
-                'achievement.imageUrl': 1,
-                'facility._id': 1,
-                'facility.name': 1,
-                'dateOfAchivied': 1,
-                'status': 1,
-                'dateOfClaim': 1
-            }},
-            { $sort : { 'dateOfAchivied' : 1 } }
-        ]).exec((err, userAchievements) => {
-            if (err) {
-                return reject({
-                    code: 400
-                });
-            }
-            return resolve(
-                userAchievements
-            );
+        return new Promise((resolve,reject)=>{
+            UserAchievement.aggregate([
+                {
+                    $match: {
+                        'userFacilityId': {
+                            $in: userFacilities
+                        }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'achievements', // collection name in db
+                        localField: 'achievementId',
+                        foreignField: '_id',
+                        as: 'achievement'
+                    }
+                },
+                { $match: { 'achievement.status': "active" } },
+                { $unwind: '$achievement' },
+    
+                {
+                    $lookup: {
+                        from: 'user_facilities',
+                        localField: 'userFacilityId',
+                        foreignField: '_id',
+                        as: 'user_facility'
+                    }
+                },
+                { $unwind: '$user_facility' },
+    
+                {
+                    $lookup: {
+                        from: 'facilities',
+                        localField: 'user_facility.facilityId',
+                        foreignField: '_id',
+                        as: 'facility'
+                    }
+                },
+                { $unwind: '$facility' },
+    
+                {
+                    $project: {
+                        '_id': 1,
+                        'achievement.name': 1,
+                        'achievement.description': 1,
+                        'achievement.imageUrl': 1,
+                        'facility._id': 1,
+                        'facility.name': 1,
+                        'dateOfAchivied': 1,
+                        'status': 1,
+                        'dateOfClaim': 1
+                    }
+                },
+                { $sort: { 'dateOfAchivied': 1 } }
+            ]).exec((err, userAchievements) => {
+                err ? reject(err) : resolve(userAchievements);
+            });
         });
-    });
-};
+        
+    };
+    
 
 
 const UserAchievement = mongoose.model('user_achievements', userAchievementsSchema);

@@ -4,7 +4,6 @@ const validateExistenceAccessHeader = require('./validateExistenceAccessHeader')
 const validateSession = require('./validateSession');
 const validateTokenAlive = require('./validateTokenAlive');
 const verifyToken = require('./verifyToken');
-const validateAuth = require('./validateAuth');
 
 module.exports ={
     upload,
@@ -13,5 +12,4 @@ module.exports ={
     validateSession,
     validateTokenAlive,
     verifyToken,
-    validateAuth
 };

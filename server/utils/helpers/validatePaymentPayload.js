@@ -1,6 +1,7 @@
 const validateRequiredFields = require('./validateRequiredFields');
 
-const validatePaymentPayload = async (data, membership) => {
+// This is wherre Stripe API should go should be async, but for linting purposes its off.
+const validatePaymentPayload =  (data, membership) => {
 
   const { price } = data;
 
@@ -13,9 +14,12 @@ const validatePaymentPayload = async (data, membership) => {
   ]);
 
 
-  if(!result) throw ({statusCode: 400})
+  if(!result) throw ({statusCode: 400});
   
-  if(price !== membership.price) throw({statusCode: 402})}
+  if(price !== membership.price) throw({statusCode: 402});
+
+
+};
 
 
 

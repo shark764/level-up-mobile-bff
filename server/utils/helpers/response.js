@@ -6,7 +6,7 @@ const success = (args) => ({
 
 const error = (args) => {
     const {code} = args;
-    let message = args.message || 'Server Error';
+    let message;
     switch(code){
         case 400:
             message ="LUL-MOB000 - Bad request check body/params";
@@ -33,8 +33,11 @@ const error = (args) => {
         break;
 
         case 422:
-            message="LUL-MOB022 - Request Failed For Model";
-        break;        
+            message="LUL-MOB022 - Missing Access Header";
+        break;
+        
+        default:
+            message = args.message || 'Server Error';
     }
     return {
         status: 'error',

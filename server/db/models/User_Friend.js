@@ -49,7 +49,7 @@ UserFriendSchema.statics.areFriends = (inUserId, inUserFriendId) => {
                             {
                                 $and:
                                     [
-                                        { "userId": userId },
+                                        { userId },
                                         { "friendUserId": userFriendId },
                                     ]
                             },
@@ -73,7 +73,7 @@ UserFriendSchema.statics.areFriends = (inUserId, inUserFriendId) => {
             }
         });
     });
-}
+};
 
 
 const UserFriend = mongoose.model('user_friend', UserFriendSchema);

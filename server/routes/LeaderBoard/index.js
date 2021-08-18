@@ -3,7 +3,6 @@ const app = express();
 const User = require('../../db/models/User');
 const { error, success } = require('../../utils/helpers/response');
 const { validateSession, validateTokenAlive, validateExistenceAccessHeader } = require('../../middlewares');
-const validator = require('validator');
 
 
 app.get('/leaderboard',

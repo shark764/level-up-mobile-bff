@@ -76,18 +76,18 @@ app.get('/goals/categories/:goalCategoryId',
                                                 reject({ statusCode: 500 });
                                             }
                                             else {
-                                                resolve(goals)
+                                                resolve(goals);
                                             }
                                         });
                                     }
                                     else {
-                                        reject({ statusCode: 404 })
+                                        reject({ statusCode: 404 });
                                     }
                                 })
-                                .catch(() => reject({ statusCode: 500 }))
+                                .catch(() => reject({ statusCode: 500 }));
                         }
                         else {
-                            reject({ statusCode: 404 })
+                            reject({ statusCode: 404 });
                         }
                     })
                     .catch(() => reject({ statusCode: 500 }));
@@ -176,7 +176,7 @@ app.get('/users/:pathUserId/goals',
         try {
             const { facilityId } = req.query;
             const { pathUserId } = req.params;
-            let myUserId = req.user_id;
+            const myUserId = req.user_id;
             let isEqualUserId = false;
             let areFriends = false;
 
@@ -185,7 +185,7 @@ app.get('/users/:pathUserId/goals',
 
             if (!isEqualUserId) {
                 if (!validator.isMongoId(pathUserId)) {
-                    return res.status(400).json(error({ requestId: req.id, code: 400 }))
+                    return res.status(400).json(error({ requestId: req.id, code: 400 }));
                 }
                 else {
                     const userExists = await User.findById(pathUserId);
@@ -202,12 +202,12 @@ app.get('/users/:pathUserId/goals',
             }
 
             if (!facilityId && !validator.isMongoId(facilityId)) {
-                return res.status(400).json(error({ requestId: req.id, code: 400 }))
+                return res.status(400).json(error({ requestId: req.id, code: 400 }));
             }
             else{
                 const facilityExists = await Facility.findById(facilityId);
                 if(!facilityExists){
-                    return res.status(404).json(error({ requestId: req.id, code: 404 }))
+                    return res.status(404).json(error({ requestId: req.id, code: 404 }));
                 }
             }
 

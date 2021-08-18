@@ -4,20 +4,16 @@ const express= require('express');
 const app = express();
 const port = process.env.PORT || 5000;
 const addRequestId = require('express-request-id')();
-const bodyParser = require('body-parser');
-const leagueRouter = require('./routes/League');
 const gameRouter = require('./routes/Games');
-const userAchievementsRouter = require('./routes/UserAchievements');
+const Achievements= require('./routes/Achievements');
 const UserChallengeRouter = require('./routes/UserChallenges');
  
 app.use(addRequestId);
 app.use(express.json());
-
-app.use(leagueRouter);
 app.use(gameRouter);
-app.use('/users/:userId/achievements/', userAchievementsRouter);
+app.use(Achievements);
 app.use(UserChallengeRouter);
-app.use(require('./routes/FacilityCheckIn'));
+app.use('/facilities',require('./routes/FacilityCheckIn'));
 app.use(require('./routes/Memberships'));
 app.use(require('./routes/Goals'));
 app.use(require('./routes/Social'));

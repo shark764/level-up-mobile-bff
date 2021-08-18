@@ -7,42 +7,32 @@ const SafetyVideo = require('../../db/models/Safety_Video');
 const UserFacility = require('../../db/models/User_Facility');
 const {ObjectId} = require('mongoose').Types;
 const { success, error } = require('../../utils/helpers/response');
-const redisCheckIn = require('../../utils/redis/facility');
 const { validateSession, validateTokenAlive, validateExistenceAccessHeader } = require('../../middlewares');
 const validator = require('validator');
+const { USER_NOT_IN_FACILITY, LIMIT_PAGE_DEFAULT } = require('../../utils/helpers/consts');
 
 
 //Get all facilities
-app.get('/facilities',
+app.get('',
     [
         validateExistenceAccessHeader,
         validateSession,
         validateTokenAlive
     ],
     (req, res) => {
-        try {
-
             const userId = req.user_id;
             const result = new Promise((resolve, reject) => {
-
-                const facilities = Facility.find({}, { "name": 1 });
+                const facilities = Facility.find({}, { "name": 1,"pictures": 1 });
                 facilities
                     .then(data => {
-                        if (userId) {
-                            //userId is sent to fetch 
-                            const { lat, long } = req.query;
-
-                            //Validations made in order to obtain lat/long required;
-                            if (lat && long) {
+                            const { lat, long,limit} = req.query;
+                            if (Number(lat) && Number(long)) {
                                 const userExists = User.findById(userId);
                                 userExists
                                     .then(async (user) => {
-                                        if (user) {
                                             user.location.coordinates = [lat, long];
-                                            try {
                                                 await user.save();
                                                 await Facility.collection.createIndex({ location: '2dsphere' });
-
                                                 // QUERY get's closest facilities to the lat/long received.
                                                 Facility.aggregate([
                                                     {
@@ -56,7 +46,7 @@ app.get('/facilities',
                                                             "spherical": true,
                                                         }
                                                     },
-                                                    { "$limit": 2 },
+                                                    { "$limit": Number(limit) || LIMIT_PAGE_DEFAULT },
                                                     {
                                                         "$project": {
                                                             "name": 1,
@@ -70,59 +60,33 @@ app.get('/facilities',
                                                             //  }
                                                         }
                                                     },
-                                                ]).exec((e, nearFacilities) => {
-                                                    if (e) {
-                                                        reject({ statusCode: 500, message: e.message });
-                                                    }
-                                                    else {
-                                                        resolve(nearFacilities);
-                                                    }
-                                                });
-                                            } catch(e) {
-                                                reject({ statusCode: 500, message: e.message });
-                                            }
-                                        } else {
-                                            reject({ statusCode: 404 });
-                                        }
-                                    })
-                                    .catch((e) => reject({ statusCode: 500, message: e.message }));
+                                                ]).exec((e, nearFacilities) => e? reject(e) : resolve(nearFacilities));
+                                    }).catch(e=> reject(e));
                             } else {
                                 resolve(data);
                             }
-                        } else {
-                            reject({ statusCode: 400 });
-                        }
-                    })
-                    .catch((e) => reject({ statusCode: 500, message: e.message }));
+                       
+                    });
             });
 
             result
                 .then(data => res.json(success({ requestId: req.id, data })))
                 .catch(({ statusCode, message }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500, message })));
-
-        } catch (e) {
-            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message }));
-        }
     });
 
 
 //Get facility by id
-app.get('/facilities/:facilityId',
+app.get('/:facilityId',
     [
         validateExistenceAccessHeader,
         validateSession,
         validateTokenAlive
     ], 
-    async (req, res) => { 
-        try {            
+    (req, res) => {   
             const { facilityId }  = req.params;
-
             if (!validator.isMongoId(facilityId)) {
                 return res.status(400).json(error({ requestId: req.id, code: 400 }));
             }
-
-            const facilityExist = await Facility.findById(facilityId);
-            if(facilityExist){
                 Facility.aggregate([
                     {
                         "$match": { "_id": ObjectId(facilityId) }
@@ -149,29 +113,25 @@ app.get('/facilities/:facilityId',
                 ]).exec((e, facility) => {
                     if (e) {
                         res.status(500).json(error({ requestId: req.id, code: 500, message: e.message }));
-                    } else {
+                    }else if(facility.length  === 0){
+                        res.status(404).json(error({requestId: req.id, code:404}));
+                    } 
+                    else {
                         res.json(success({ requestId: req.id, data: facility }));
                     }
                 });
-            }
-            else{
-                res.status(404).json(error({ requestId: req.id, code: 404 }));
-            }
-        } catch (e) {
-            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message })); 
-        }
-    });
+            });
+        
 
 
 //Checkin by user in a specific facility
-app.put('/facilities/:facilityId/checkin',
+app.put('/:facilityId/checkin',
     [
         validateExistenceAccessHeader,
         validateSession,
         validateTokenAlive
     ],
     (req, res) => {
-        try {
             const userId = req.user_id;
             const { facilityId } = req.params;
 
@@ -181,51 +141,41 @@ app.put('/facilities/:facilityId/checkin',
 
             const result = new Promise((resolve, reject) => {
 
-                const facilityExist = Facility.findById(facilityId); //facility exist
+                const facilityExist = Facility.findById(facilityId);
                 facilityExist
-                    .then(data => {
-                        if (data) {
-                            const userExist = User.findById(userId);
+                    .then(facility => {
+                        if (facility){
+            
+                            const infoCheckIn = {
+                                facilityId,
+                                dateTime: Date.now()
+                            };
 
-                            userExist
-                                .then(data => {
-                                    if (data) {    //User exist
-                                        const infoCheckIn = {
-                                            facilityId,
-                                            dateTime: Date.now()
-                                        };
+                            Facility.setCheckin(userId, JSON.stringify(infoCheckIn), async(err) => {
+                                    if(err) reject(err);
+                                    const checkin = await  CheckIn.findOneAndUpdate(
+                                        { facilityId, dateCheckIn: { $gt: new Date(new Date().setHours(0, 0, 0, 0)) }},
+                                        {$setOnInsert:{dateCheckIn: Date.now()},$push:{users:{_id: ObjectId(userId)}}},
+                                        {new: true, upsert:true}
+                                    );
 
-                                        redisCheckIn().setCheckIn(userId, JSON.stringify(infoCheckIn), () => {
-                                            CheckIn.setCheckInUser(facilityId, userId)
-                                                .then(result => resolve(result))
-                                                .catch(({statusCode, message}) => reject({ statusCode, message }));
-                                        });
-                                    }
-                                    else {
-                                        reject({ statusCode: 404 });
-                                    }
-                                })
-                                .catch((e) => reject({ statusCode: 500, message: e.message }));
-                        }
-                        else {
+                                    resolve(checkin);        
+                    });
+
+                    }else{
                             reject({ statusCode: 404 });
                         }
-                    })
-                    .catch((e) => reject({ statusCode: 500, message: e.message }));
+                    }).catch(e=> reject(e));
             });
 
             result
                 .then(data => res.json(success({ requestId: req.id, data })))
                 .catch(({ statusCode, message }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500, message })));
-
-        } catch (e) {
-            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message }));
-        }
     });
 
 
-//Checkin history
-app.get('/facilities/:facilityId/checkin',
+//Checkin history N/A
+app.get('/:facilityId/checkin',
     [
         validateExistenceAccessHeader,
         validateSession,
@@ -288,68 +238,58 @@ app.get('/facilities/:facilityId/checkin',
 
 
 //Get the safety video information
-app.get('/facilities/:facilityId/media/safety-video',
+app.get('/:facilityId/media/safety-video',
     [
         validateExistenceAccessHeader,
         validateSession,
         validateTokenAlive
     ],
     (req, res) => {
-        try {
-
+    
             const { facilityId } = req.params;
             const userId = req.user_id;
-
             if (!validator.isMongoId(facilityId)) {
                 return res.status(400).json(error({ requestId: req.id, code: 400 }));
             }
 
             const result = new Promise((resolve, reject) => {
 
-                const userFacility = UserFacility.find({ facilityId, userId });
+                const userFacility = UserFacility.findOne({ facilityId, userId });
 
                 userFacility
                     .then(userFacility => {
-                        if (userFacility && userFacility.length > 0) {
-                            const oneUserFacility = userFacility.pop();
+                        if (userFacility) {
                             const safetyVideoInfo = SafetyVideo.find({ $or: [{ facilityId: null }, { $and: [{ facilityId: ObjectId(facilityId) }, { active: true }] }] });
                             safetyVideoInfo
                                 .then(data => {
-                                    if (data && data.length > 0) {
-                                        resolve({ "videoURL": (data.length === 2 ? data[1].videoURL : data[0].videoURL), "safetyVideo": oneUserFacility.safetyVideo });
+                                    if (data.length > 0) {
+                                        resolve({ "videoURL": (data.length === 2 ? data[1].videoURL : data[0].videoURL), "safetyVideo": userFacility.safetyVideo });
                                     }
                                     else {
                                         reject({ statusCode: 404 });
                                     }
-                                })
-                                .catch(e => reject({ statusCode: 500, message: e.message }));
+                                }).catch(e=> reject(e));
                         }
                         else {
-                            reject({ statusCode: 404 });
+                            reject({ statusCode: 404, message: USER_NOT_IN_FACILITY });
                         }
-                    })
-                    .catch(e => reject({ statusCode: 500, message: e.message }));
+                    }).catch(e=> reject(e));
             });
 
             result
                 .then(data => res.json(success({ requestId: req.id, data })))
                 .catch(({ statusCode, message }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500, message })));
-
-        } catch (e) {
-            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message }));
-        }
     });
 
 
 //Update safety video watched
-app.put('/facilities/:facilityId/media/safety-video',
+app.put('/:facilityId/media/safety-video',
     [
         validateExistenceAccessHeader,
         validateSession,
         validateTokenAlive
     ],
     (req, res) => {
-        try {
 
             const { facilityId } = req.params;
             const userId = req.user_id;
@@ -358,35 +298,17 @@ app.put('/facilities/:facilityId/media/safety-video',
                 return res.status(400).json(error({ requestId: req.id, code: 400 }));
             }
 
-            const result = new Promise((resolve, reject) => {
-                const userFacility = UserFacility.find({ facilityId, userId });
-                userFacility
-                    .then((userFacility) => {
-                        if (userFacility && userFacility.length > 0) {
-
-                            const setSafetyVideo = userFacility.pop();
-                            setSafetyVideo.safetyVideo = true;
-
-                            try {
-                                resolve(setSafetyVideo.save());
-                            } catch(e) {
-                                reject({ statusCode: 500, message: e.message });
-                            }
-                        }
-                        else {
-                            reject({ statusCode: 404 });
-                        }
-                    })
-                    .catch(e => reject({ statusCode: 500, message: e.message }));
+            const result = new Promise((resolve,reject)=>{
+                UserFacility.findOneAndUpdate({facilityId,userId},
+                    {safetyVideo: true},{new: true},(err,doc)=>{
+                        if(err) reject(err);
+                        if(!doc) reject({statusCode: 404});
+                        resolve(doc);
+                    });
             });
-
             result
                 .then(data => res.json(success({ requestId: req.id, data })))
                 .catch(({ statusCode, message }) => res.status(statusCode || 500).json(error({ requestId: req.id, code: statusCode || 500, message })));
-
-        } catch (e) {
-            res.status(500).json(error({ requestId: req.id, code: 500, message: e.message }));
-        }
     });
 
 

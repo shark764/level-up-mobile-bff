@@ -1,7 +1,6 @@
 const express = require('express');
 const app = express();
 const Facility = require('../../../db/models/Facility');
-const User = require('../../../db/models/User');
 const UserFacility = require('../../../db/models/User_Facility');
 const Membership = require('../../../db/models/Membership');
 const verifyPaymentPayload = require('../../../utils/helpers/validatePaymentPayload');
@@ -27,45 +26,31 @@ app.post('/free/:facilityId',
     ], async (req, res) => {
 
         try {
-
+           
             const { facilityId } = req.params;
-
-            const userId = req.user_id
-
-            const validationResult = await Facility.validateFacility(facilityId);
-
-            if (validationResult.code !== 200) {
-                return res.status(validationResult.code).json(
+            const userId = req.user_id;
+            const {code} = await Facility.validateFacility(facilityId);
+            if (code !== 200) {
+                return res.status(code).json(
                     error({
                         requestId: req.id,
-                        code: validationResult.code,
+                        code
                     })
                 );
             }
-
-                   // Facility found.
-                    // Validations..
-                    // Verify if facility is free.
                     const freeMembership = await Facility.freeMembership(facilityId);
                     if (freeMembership) {
-
                         UserFacility.isAlreadyMember(userId, facilityId).then(async () => {
-                            const userFacility = new UserFacility({ userId, facilityId });
+                            const userFacility = new UserFacility({ userId, facilityId,createdBy: userId });
                             await userFacility.save();
                             res.json(success({ requestId: req.id, data: { user_facility: userFacility } }));
-                        }).catch(e => {
-                            res.status(e.statusCode || 500).json(error({ requestId: req.id, code: e.statusCode, message: e.message }));
-                        });
+                        }).catch(({statusCode,message})=> res.status(statusCode || 500).json(error({requestId: req.id, code: statusCode || 500, message })));
                     } else {
                         // Facility it's not free.
                         res.status(402).json(error({ requestId: req.id, code: 402 }));
                     }
-
-                
-            
-
         } catch (err) {
-            res.status(500).json(error({ requestId: req.id, code: 500, message: err.message }));
+            res.status(err.statusCode|| 500).json(error({ requestId: req.id, code: 500, message: err.message }));
         }
 
     });
@@ -79,11 +64,8 @@ app.post('/:membershipId',
 
         try {
             const { membershipId } = req.params;
-
-            const userId = req.user_id
-
+            const userId = req.user_id;
             const validationResult = await Membership.validateMembership(membershipId);
-
             if (validationResult.code !== 200) {
                 return res.status(validationResult.code).json(
                     error({
@@ -93,25 +75,16 @@ app.post('/:membershipId',
                 );
             }
 
+            const paymentPayload = req.body;
+            UserFacility.isAlreadyMember(userId, validationResult.membership.facilityId).then(async () => {
 
-            // Payment payload;
-            const payload = req.body;
-            
-
-                    UserFacility.isAlreadyMember(userId, validationResult.membership.facilityId).then(async () => {
-
-                        const membership = await
-                        validationResult.membership.populate('facilityId');
-
-                        await verifyPaymentPayload(payload, membership);                        
-                    
-                        const newMembership = await createMembership( userId, membership);
-                            res.json(success({ requestId: req.id, data: { membership: newMembership } }));
-                        
-
-                    }).catch(e => {
-                        res.status(e.statusCode || 500).json(error({ requestId: req.id, code: e.statusCode || 500, message: e.message }));
-                    });
+                const membership = await  validationResult.membership.populate('facilityId');
+                verifyPaymentPayload(paymentPayload, membership);                        
+                const newMembership = await createMembership( userId, membership);
+                res.json(success({ requestId: req.id, data: { membership: newMembership } }));
+                }).catch(e => {
+                    res.status(e.statusCode || 500).json(error({ requestId: req.id, code: e.statusCode || 500, message: e.message }));
+                });
 
                 
 
@@ -131,7 +104,7 @@ app.get('/',
         validateExistenceAccessHeader,
         validateSession,
         validateTokenAlive
-    ], async (req, res) => {
+    ],  (req, res) => {
 
         const id = req.user_id;
 

@@ -1,12 +1,10 @@
 FROM node:14.16.1-alpine3.13
 
-#WORKDIR /usr/src/mobile-bff
-COPY package*.json ./
-#COPY . /usr/src/mobile-bff/
+WORKDIR /usr/src/mobile-bff
+COPY package*.json /usr/src/mobile-bff/
+
 RUN ["npm", "install"]
 
+COPY . /usr/src/mobile-bff
 
-COPY . .
-#WORKDIR /usr/src/mobile-bff/dist
-
-CMD [ "node", "dist/index.js" ]
+CMD [ "npm", "start" ]

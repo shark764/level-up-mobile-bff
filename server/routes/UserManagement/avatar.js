@@ -1,10 +1,9 @@
 const express = require('express');
 const {ObjectId} = require('mongoose').Types;
 const User = require('../../db/models/User');
-const {upload} = require('../../middlewares/upload');
+const {upload,validateExistenceAccessHeader,validateSession,validateTokenAlive} = require('../../middlewares');
 const {s3,s3Actions} = require('../../utils/aws');
 const getFileType = require('../../utils/helpers/getFileType');
-const validateAccess = require('../../middlewares/validateAccess');
 const {success} = require('../../utils/helpers/response');
 const {error} = require('../../utils/helpers/response');
 const multer = require('multer');
@@ -13,7 +12,10 @@ const router = express.Router();
 //const uploadSingleFile = upload.single('image')
 
 /// POST /user/avatar
-router.post('/user/avatar/', validateAccess, async (req,res) => {
+router.post('/user/avatar/', [ 
+    validateExistenceAccessHeader,
+    validateSession,
+    validateTokenAlive],  (req,res) => {
     try {
         
         upload(req, res, (err) => {
@@ -28,7 +30,7 @@ router.post('/user/avatar/', validateAccess, async (req,res) => {
             if (!req.file) {
                 return res.status(400).json(error({ requestId: req.id, code: 400, message: 'Please upload an image' }));
             }
-            const fileName = req.user.data._id;
+            const fileName = req.user_id;
             
             const fileType = getFileType(req.file);
             const {uploadAvatar} = s3Actions(fileName,fileType,req.file.buffer);

@@ -54,6 +54,7 @@ get_kubeconfig:
 deploy_dev:
   only : 
     - master
+  image: devth/helm
   stage: deploy
   needs: ["get_kubeconfig"]
   script:

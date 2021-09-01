@@ -39,14 +39,25 @@ build:
     - docker login $DOCKER_REGISTRY_URL
     - docker push $DOCKER_REGISTRY_URL/lul-registry/lul-mobile-bff
 
+get_kubeconfig:
+  image: henry40408/doctl-kubectl
+  stage: deploy
+  script:
+    - mkdir kube
+    - doctl auth init --access-token $DIGITALOCEAN_ACCESS_TOKEN
+    - doctl kubernetes cluster kubeconfig save $DIGITALOCEAN_CLUSTER_NAME
+    - cp ~/.kube/config kube/
+  artifacts: 
+    paths:
+      - kube/
 
 deploy_dev:
   only : 
     - master
   stage: deploy
-  image: devth/helm
+  needs: ["get_kubeconfig"]
   script:
-      - export KUBECONFIG=$KUBECONFIG_file 
+      - export KUBECONFIG=kube/config 
       - git clone https://$GIT_USER:$GIT_TOKEN@gitlab.com/focus-ventures/lul-infra.git
       - cd lul-infra/charts
       - helm upgrade -i lul-mobile-bff lul-mobile-bff  -f lul-mobile-bff/environments/dev.yaml

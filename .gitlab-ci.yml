@@ -32,6 +32,10 @@ build:
   only : 
     - master
   stage: build
+  before_script:
+    - apk add git
+    - mkdir -p src/db/models/
+    - git clone https://$GIT_USER:$GIT_TOKEN@gitlab.com/focus-ventures/schemas.git src/db/models/schemas
   script:
     - docker build -t $DOCKER_REGISTRY_URL/lul-registry/lul-mobile-bff -t $DOCKER_REGISTRY_URL/lul-registry/lul-mobile-bff:$CI_COMMIT_SHORT_SHA .
     - mkdir ~/.docker
@@ -39,15 +43,19 @@ build:
     - docker login $DOCKER_REGISTRY_URL
     - docker push $DOCKER_REGISTRY_URL/lul-registry/lul-mobile-bff
 
-
 deploy_dev:
   only : 
     - master
-  stage: deploy
   image: devth/helm
+  stage: deploy
+  before_script:
+      - wget https://github.com/digitalocean/doctl/releases/download/v1.64.0/doctl-1.64.0-linux-amd64.tar.gz
+      - tar xf ./doctl-1.64.0-linux-amd64.tar.gz
+      - mv ./doctl /usr/local/bin
+      - doctl auth init --access-token $DIGITALOCEAN_ACCESS_TOKEN
+      - doctl kubernetes cluster kubeconfig save $DIGITALOCEAN_CLUSTER_NAME
+      - export KUBECONFIG=~/.kube/config
   script:
-      - export KUBECONFIG=$KUBECONFIG_file 
       - git clone https://$GIT_USER:$GIT_TOKEN@gitlab.com/focus-ventures/lul-infra.git
       - cd lul-infra/charts
       - helm upgrade -i lul-mobile-bff lul-mobile-bff  -f lul-mobile-bff/environments/dev.yaml
-

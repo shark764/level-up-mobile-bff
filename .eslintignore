@@ -1,6 +1,32 @@
+# .eslintignore
+
 /build/**
 /coverage/**
 /dist/**
 /node_modules/**
 /public/**
-server/db/models/schemas
+
+node_modules/*
+node_modules/
+jest.config.js
+commitlint.config.js
+lint-staged.config.js
+# .eslintrc.js
+
+.env
+public
+static
+dist
+build
+
+.swp
+.DS_Store
+yarn-error.log
+
+# Scripts
+scripts/*
+
+# templates
+templates/**
+
+src/db/models/schemas

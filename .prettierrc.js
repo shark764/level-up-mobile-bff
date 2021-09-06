@@ -1,9 +1,5 @@
-module.exports = {
-  bracketSpacing: true,
-  jsxBracketSameLine: true,
-  singleQuote: true,
-  trailingComma: 'es5',
-  printWidth: 80,
-  arrowParens: 'always',
-  tabWidth: 2,
-};
+// .prettierrc.js
+
+const { prettierBaseConfig } = require('@level-up/utilities');
+
+module.exports = prettierBaseConfig;

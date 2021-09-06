@@ -1,1 +1,17 @@
-server/db/models/schemas
+# .prettierignore
+
+node_modules/**
+.env
+public
+static
+dist
+build
+
+.swp
+.DS_Store
+yarn-error.log
+
+build
+coverage
+
+src/db/models/schemas

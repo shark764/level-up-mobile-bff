@@ -25,9 +25,6 @@ variables:
 services:
   - docker:19.03.12-dind
 
-# before_script:
-#   - docker info
-
 build:
   only : 
     - master
@@ -41,20 +38,3 @@ build:
     - cat $DOCKER_CREDS > ~/.docker/config.json    
     - docker login $DOCKER_REGISTRY_URL
     - docker push $DOCKER_REGISTRY_URL/lul-registry/lul-mobile-bff
-
-deploy_dev:
-  only : 
-    - master
-  image: devth/helm
-  stage: deploy
-  before_script:
-      - wget https://github.com/digitalocean/doctl/releases/download/v1.64.0/doctl-1.64.0-linux-amd64.tar.gz
-      - tar xf ./doctl-1.64.0-linux-amd64.tar.gz
-      - mv ./doctl /usr/local/bin
-      - doctl auth init --access-token $DIGITALOCEAN_ACCESS_TOKEN
-      - doctl kubernetes cluster kubeconfig save $DIGITALOCEAN_CLUSTER_NAME
-      - export KUBECONFIG=~/.kube/config
-  script:
-      - git clone https://$GIT_USER:$GIT_TOKEN@gitlab.com/focus-ventures/lul-infra.git
-      - cd lul-infra/charts
-      - helm upgrade -i lul-mobile-bff lul-mobile-bff  -f lul-mobile-bff/environments/dev.yaml

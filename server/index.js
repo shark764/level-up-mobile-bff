@@ -28,7 +28,7 @@ app.use(require('./routes/LeaderBoard'));
 //app.use(require('./routes/uploads'))
 app.use(require('./routes/UserManagement/avatar'));
 app.use(require('./routes/More/Settings')); 
-
+app.use(require('./routes/Users'));
 
 
 app.listen(port,(err)=>{

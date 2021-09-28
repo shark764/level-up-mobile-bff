@@ -5,6 +5,7 @@ const ACHIEVEMENT_NOT_FOUND = 'LUL-MOB004 - Achievement not found.';
 const USER_NOT_IN_FACILITY = 'LUL-MOB004 - User/Facility relation not found.';
 const USER_MEMBER  = "LUL-MOB009 - User is already a member";
 const LIMIT_PAGE_DEFAULT = 2;
+const USER_INFORMATION = "firstName lastName birthDate country city";
 
 module.exports = {
     DEV_MODE,
@@ -13,5 +14,6 @@ module.exports = {
     ACHIEVEMENT_NOT_FOUND,
     USER_NOT_IN_FACILITY,
     USER_MEMBER,
-    LIMIT_PAGE_DEFAULT
+    LIMIT_PAGE_DEFAULT,
+    USER_INFORMATION
 };

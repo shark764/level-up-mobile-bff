@@ -1,3 +1,4 @@
+import { isMongoId } from 'validator';
 const mongoose = require('mongoose');
 const UserFacility = require('./User_Facility');
 const UserMatch = require('./User_Match');
@@ -5,6 +6,7 @@ const Group = require('../models/Group');
 const UserFriend = require('../models/User_Friend');
 const { ObjectId } = mongoose.Types;
 const userSchema = require('./schemas/User');
+const { USER_INFORMATION } = require('../../utils/helpers/consts');
 
 
 // Get a rank/score of a specific user/facility.
@@ -957,6 +959,28 @@ userSchema.statics.userIsAdmin = (inGroupId, inUserId) => {
             }
         });
     });
+};
+
+userSchema.statics.validateUser = async(userId) => {
+
+    const result = {
+        user: User.object,
+        code: 200,
+    };
+
+    if (!isMongoId(userId)) {
+        result.code = 400;
+        return result;
+    }
+
+    result.user = await User.findById(userId, USER_INFORMATION);
+
+
+    if (!result.user) {
+        result.code = 404;
+    }
+
+    return result;
 };
 
 const User = mongoose.model('users', userSchema);

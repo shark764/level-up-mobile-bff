@@ -10,6 +10,7 @@ const { USER_INFORMATION } = require('../../utils/helpers/consts');
 
 
 // Get a rank/score of a specific user/facility.
+// THIS METHOD IS BROKE! MODEL CHANGED!
 userSchema.statics.getRankByFacility = async (userId, facilityId) => {
     try {
         const userFacilities = await UserFacility.find({ facilityId }).distinct('_id');
@@ -17,59 +18,59 @@ userSchema.statics.getRankByFacility = async (userId, facilityId) => {
         return new Promise((resolve, reject) => {
             userFacility ?
                 UserMatch.aggregate([
-                    {
-                        "$match": {
-                            "userFacilityId": {
-                                "$in": userFacilities
-                            }
-                        }
-                    },
-                    {
-                        "$group": {
-                            "_id": "$userFacilityId",
-                            "score": {
-                                "$sum": "$score"
-                            },
+                    // {
+                    //     "$match": {
+                    //         "userFacilityId": {
+                    //             "$in": userFacilities
+                    //         }
+                    //     }
+                    // },
+                    // {
+                    //     "$group": {
+                    //         "_id": "$userFacilityId",
+                    //         "score": {
+                    //             "$sum": "$score"
+                    //         },
 
-                        }
-                    },
-                    {
-                        "$sort": {
-                            "score": -1
-                        }
-                    },
+                    //     }
+                    // },
+                    // {
+                    //     "$sort": {
+                    //         "score": -1
+                    //     }
+                    // },
 
-                    {
-                        "$group": {
-                            "_id": null,
-                            "docs": { "$push": "$$ROOT" }
-                        }
-                    },
-                    {
-                        "$project": {
-                            "_id": 0,
-                            "R": {
-                                "$map": {
-                                    "input": { "$range": [0, { "$size": "$docs" }] },
-                                    "in": {
-                                        "$mergeObjects": [
-                                            { "rank": { "$add": ["$$this", 1] } },
-                                            { "$arrayElemAt": ["$docs", "$$this"] }
-                                        ]
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "$unwind": "$R"
-                    },
-                    {
-                        "$replaceRoot": { "newRoot": "$R" }
-                    },
-                    {
-                        "$match": { "_id": userFacility._id }
-                    }
+                    // {
+                    //     "$group": {
+                    //         "_id": null,
+                    //         "docs": { "$push": "$$ROOT" }
+                    //     }
+                    // },
+                    // {
+                    //     "$project": {
+                    //         "_id": 0,
+                    //         "R": {
+                    //             "$map": {
+                    //                 "input": { "$range": [0, { "$size": "$docs" }] },
+                    //                 "in": {
+                    //                     "$mergeObjects": [
+                    //                         { "rank": { "$add": ["$$this", 1] } },
+                    //                         { "$arrayElemAt": ["$docs", "$$this"] }
+                    //                     ]
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
+                    // },
+                    // {
+                    //     "$unwind": "$R"
+                    // },
+                    // {
+                    //     "$replaceRoot": { "newRoot": "$R" }
+                    // },
+                    // {
+                    //     "$match": { "_id": userFacility._id }
+                    // }
 
 
 
@@ -178,44 +179,9 @@ userSchema.statics.getGlobalRank = (userId) => new Promise((resolve, reject) => 
         UserMatch.aggregate([
             {
                 "$group": {
-                    "_id": "$userFacilityId",
+                    "_id": "$userId",
                     "score": {
                         "$sum": "$score"
-                    },
-                }
-            },
-            {
-                "$lookup": {
-                    "from": "user_facilities",
-                    "let": { "id": '$_id' },
-                    "pipeline": [
-                        {
-                            "$match": {
-                                "$expr": {
-                                    "$eq": ["$_id", "$$id"]
-                                }
-                            }
-                        },
-                        {
-                            "$project": {
-                                "userId": 1,
-                                "facilityId": 1,
-                            }
-                        }
-                    ],
-                    "as": "userFacility"
-                }
-            },
-            {
-                "$unwind": {
-                    "path": "$userFacility"
-                }
-            },
-            {
-                "$group": {
-                    "_id": "$userFacility.userId",
-                    "score": {
-                        "$sum": "$score",
                     },
                 }
             },
@@ -255,6 +221,11 @@ userSchema.statics.getGlobalRank = (userId) => new Promise((resolve, reject) => 
             {
                 "$match": {
                     "_id": ObjectId(userId)
+                }
+            },
+            {
+                "$project":{
+                    "id":0
                 }
             }
 

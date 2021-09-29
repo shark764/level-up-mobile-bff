@@ -8,7 +8,7 @@ const storage = multer.memoryStorage({
     }
 });
 
-const upload = multer({
+const upload =multer({
     storage,
     limits: { 
         fileSize: parseInt(process.env.ALLOWED_IMAGE_SIZE)
@@ -17,10 +17,8 @@ const upload = multer({
         if(!file.originalname.match(allowedImages)) {
             return cb(new Error('Invalid file extension'));
         } 
-        cb(undefined, true);
+        cb(null, true);
     }
 }).single('image');
 
-module.exports = {
-    upload
-};
+module.exports = upload;

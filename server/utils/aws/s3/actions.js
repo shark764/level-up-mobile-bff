@@ -5,15 +5,22 @@
     filetype ===> JPG, PNG, JPEG.
     Buffer ===> Image as Buffe get from `req.file`;
 */
-const actions = (id,filetype,Body)=>{
-
-const uploadAvatar = ()=>({
-        Bucket: process.env.AWS_BUCKET_NAME,
-        Key: `avatars/${id}.${filetype}`,
-        Body
+const actions = (id)=>{
+const Bucket= process.env.AWS_BUCKET_NAME;
+const uploadAvatar = (Body,fileType)=>({
+        Bucket,
+        Key: `avatars/${id}`,
+        Body,
+        ContentType: `image/${fileType}`
     });
+const getAvatar=()=>({
+        Bucket,
+        Key: `avatars/${id}`
+});
 
+    
     return{
+        getAvatar,
         uploadAvatar,
     };
 };

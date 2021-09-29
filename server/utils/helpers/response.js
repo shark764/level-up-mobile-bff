@@ -1,3 +1,5 @@
+const { s3 } = require("../aws");
+
 const success = (args) => ({
         status: 'success',
         requestId: args.requestId,
@@ -49,4 +51,17 @@ const error = (args) => {
     };
 };
 
-module.exports = { success, error };
+const handleImageResponse = (url,action,res,req)=>{
+    s3.headObject(action(),async(err)=>{
+        if(err) return res.status(err.statusCode || 500).json(error({requestId:req.id, code: err.statusCode || 500 , message: err.message}));
+        if(url) return res.json(success({requestId:req.id, data: s3.getSignedUrl('getObject',action())}));
+        const {Body} = await s3.getObject(action()).promise();
+        res.writeHead(200,{'Content-Type': 'image/jpeg'});
+        res.write(Body,'binary');
+        res.end(null,'binary');
+    });
+
+};
+
+
+module.exports = { success, error,handleImageResponse };

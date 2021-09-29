@@ -92,18 +92,16 @@ userAchievementsSchema.statics.getAllUserAchievements =  async(userId, facilityI
     
                 {
                     $project: {
-                        '_id': 1,
                         'achievement.name': 1,
                         'achievement.description': 1,
                         'achievement.imageUrl': 1,
                         'facility._id': 1,
                         'facility.name': 1,
-                        'dateOfAchivied': 1,
+                        'dateOfAchieved': 1,
                         'status': 1,
-                        'dateOfClaim': 1
                     }
                 },
-                { $sort: { 'dateOfAchivied': 1 } }
+                { $sort: { 'dateOfAchieved': 1 } }
             ]).exec((err, userAchievements) => {
                 err ? reject(err) : resolve(userAchievements);
             });

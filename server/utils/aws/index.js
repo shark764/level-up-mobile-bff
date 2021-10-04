@@ -1,7 +1,8 @@
-const s3 = require('./s3');
-const s3Actions = require('./s3/helpers/actions');
+const {s3,s3Actions} = require('./s3');
+
 
 module.exports={
     s3,
-    s3Actions
+    s3Actions,
+
 };

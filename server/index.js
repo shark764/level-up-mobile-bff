@@ -7,6 +7,7 @@ const addRequestId = require('express-request-id')();
 const gameRouter = require('./routes/Games');
 const Achievements= require('./routes/Achievements');
 const UserChallengeRouter = require('./routes/UserChallenges');
+const ProfileRouter = require('./routes/Profile');
  
 app.use(addRequestId);
 app.use(express.json());
@@ -19,14 +20,14 @@ app.use(require('./routes/Goals'));
 app.use(require('./routes/Social'));
 app.use(require('./routes/Social/profile'));
 app.use(require('./routes/Social/Groups'));
-app.use(require('./routes/UserFacilityProfile'));
+app.use(require('./routes/Profile'));
 app.use(require('./routes/Social/user_posts'));
 app.use(require('./routes/Social/events'));
 app.use(require('./routes/Social/feeds'));
 app.use(require('./routes/Social/Invitations'));
 app.use(require('./routes/LeaderBoard'));
+app.use('/userprofile',ProfileRouter);
 //app.use(require('./routes/uploads'))
-app.use(require('./routes/UserManagement/avatar'));
 app.use(require('./routes/More/Settings')); 
 app.use(require('./routes/Users'));
 

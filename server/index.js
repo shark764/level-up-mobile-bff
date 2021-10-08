@@ -2,7 +2,7 @@ require("dotenv").config();
 require('./db');
 const express= require('express');
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 4000;
 const addRequestId = require('express-request-id')();
 const gameRouter = require('./routes/Games');
 const Achievements= require('./routes/Achievements');

@@ -338,6 +338,7 @@ app.get('/:userId',async(req,res)=>{
         ]);
         if(profile.length === 0) throw({statusCode:404});
         const globalRank =await User.getGlobalRank(userId);
+        console.log("GobalRank", globalRank)
         res.json(success({requestId:req.id,data:{profile:{...profile.pop(),...globalRank}}}));
         
     }catch({statusCode,message}){

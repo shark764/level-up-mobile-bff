@@ -276,6 +276,7 @@ app.get('/:facilityId',async(req,res)=>{
         const facilityRank = await User.getRankingInFacilities(userId,facilityId);
         res.json(success({requestId: req.id, data:{profile: profile.pop(), facility: {...facility.pop(),...facilityRank}}}));
         console.log("FacilityRank",facilityRank);
+        
     }catch(e){
         res.status(e.statusCode || 500).json(error({requestId:req.id,code:e.statusCode || 500, message: e.message}));
     }

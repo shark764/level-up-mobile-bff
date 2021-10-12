@@ -359,12 +359,18 @@ userSchema.statics.getRankingInFacilities = async (userId) => {
                     }
                 }
 
+            // ]).exec((err, results) => {
+            //     console.log("results", results);
+            //     if (err) reject(err);
+            //     resolve(results.pop());
+            // });
 
-
-            ]).exec((err, results) => {
-                console.log("results", results);
-                if (err) reject(err);
-                resolve(results);
+            ]).exec((e, results) => {
+                if (e)
+                    reject({statusCode: 500});
+                if (results.length === 0)
+                    resolve({ rank: null, _id: userId, score: 0 });
+                resolve(results.pop());
             });
 
         });
